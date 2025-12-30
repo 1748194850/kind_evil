@@ -1,5 +1,5 @@
 %YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
+%TAG !u! tag:yousandi.cn,2023:
 --- !u!29 &1
 OcclusionCullingSettings:
   m_ObjectHideFlags: 0
@@ -170,6 +170,182 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentGameState: 0
+--- !u!1 &423118474
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 7
+  m_Component:
+  - component: {fileID: 423118476}
+  - component: {fileID: 423118475}
+  m_Layer: 0
+  m_HasEditorInfo: 1
+  m_Name: LayerManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &423118475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 423118474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ebe0aa2a3bc2f34e938389d7f502f39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  layerSettings:
+  - LayerName: 
+    SortingOrderBase: 0
+    ParallaxFactor: 1
+    ScaleMultiplier: 1
+    AlphaMultiplier: 1
+    TintColor: {r: 1, g: 1, b: 1, a: 1}
+    HasCollision: 0
+    HasInteraction: 0
+    ContrastRatio: 1
+    TemperatureTint: {r: 1, g: 1, b: 1, a: 1}
+    CullDistance: 50
+  - LayerName: 
+    SortingOrderBase: 0
+    ParallaxFactor: 1
+    ScaleMultiplier: 1
+    AlphaMultiplier: 1
+    TintColor: {r: 1, g: 1, b: 1, a: 1}
+    HasCollision: 0
+    HasInteraction: 0
+    ContrastRatio: 1
+    TemperatureTint: {r: 1, g: 1, b: 1, a: 1}
+    CullDistance: 50
+  - LayerName: 
+    SortingOrderBase: 0
+    ParallaxFactor: 1
+    ScaleMultiplier: 1
+    AlphaMultiplier: 1
+    TintColor: {r: 1, g: 1, b: 1, a: 1}
+    HasCollision: 0
+    HasInteraction: 0
+    ContrastRatio: 1
+    TemperatureTint: {r: 1, g: 1, b: 1, a: 1}
+    CullDistance: 50
+  - LayerName: 
+    SortingOrderBase: 0
+    ParallaxFactor: 1
+    ScaleMultiplier: 1
+    AlphaMultiplier: 1
+    TintColor: {r: 1, g: 1, b: 1, a: 1}
+    HasCollision: 0
+    HasInteraction: 0
+    ContrastRatio: 1
+    TemperatureTint: {r: 1, g: 1, b: 1, a: 1}
+    CullDistance: 50
+  - LayerName: 
+    SortingOrderBase: 0
+    ParallaxFactor: 1
+    ScaleMultiplier: 1
+    AlphaMultiplier: 1
+    TintColor: {r: 1, g: 1, b: 1, a: 1}
+    HasCollision: 0
+    HasInteraction: 0
+    ContrastRatio: 1
+    TemperatureTint: {r: 1, g: 1, b: 1, a: 1}
+    CullDistance: 50
+  - LayerName: 
+    SortingOrderBase: 0
+    ParallaxFactor: 1
+    ScaleMultiplier: 1
+    AlphaMultiplier: 1
+    TintColor: {r: 1, g: 1, b: 1, a: 1}
+    HasCollision: 0
+    HasInteraction: 0
+    ContrastRatio: 1
+    TemperatureTint: {r: 1, g: 1, b: 1, a: 1}
+    CullDistance: 50
+  - LayerName: 
+    SortingOrderBase: 0
+    ParallaxFactor: 1
+    ScaleMultiplier: 1
+    AlphaMultiplier: 1
+    TintColor: {r: 1, g: 1, b: 1, a: 1}
+    HasCollision: 0
+    HasInteraction: 0
+    ContrastRatio: 1
+    TemperatureTint: {r: 1, g: 1, b: 1, a: 1}
+    CullDistance: 50
+  parallaxReference: {fileID: 0}
+  parallaxStrength: 0.5
+  enableParallax: 1
+  smoothFactor: 10
+  updateThreshold: 0.001
+--- !u!4 &423118476
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 423118474}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.7269004, y: -3.7367318, z: -0.80468833}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &563843322
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 7
+  m_Component:
+  - component: {fileID: 563843324}
+  - component: {fileID: 563843323}
+  m_Layer: 0
+  m_HasEditorInfo: 1
+  m_Name: LayerTest
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &563843323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 563843322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3500091bc45ff7e4c8d6d23b713af88d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  autoTestOnStart: 1
+  spacing: 2
+  testObjectSize: {x: 3, y: 3}
+--- !u!4 &563843324
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 563843322}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.7269004, y: -3.7367318, z: -0.80468833}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &622296093
 GameObject:
   m_ObjectHideFlags: 0
@@ -312,7 +488,7 @@ GameObject:
   m_Layer: 0
   m_HasEditorInfo: 1
   m_Name: player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -481,6 +657,7 @@ MonoBehaviour:
   requireGrounded: 1
   allowAirJump: 0
   showDebugInfo: 0
+  debugLogInterval: 300
 --- !u!1 &1901158054
 GameObject:
   m_ObjectHideFlags: 0
@@ -587,9 +764,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingLayerID: 1667732081
+  m_SortingLayer: 4
+  m_SortingOrder: 300
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
   m_Color: {r: 0.3955024, g: 0.14989509, b: 0.899371, a: 1}
   m_FlipX: 0
@@ -627,6 +804,7 @@ GameObject:
   - component: {fileID: 2035579480}
   - component: {fileID: 2035579479}
   - component: {fileID: 2035579478}
+  - component: {fileID: 2035579481}
   m_Layer: 0
   m_HasEditorInfo: 1
   m_Name: Main Camera
@@ -678,7 +856,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 5
+  orthographic size: 3
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -705,12 +883,35 @@ Transform:
   m_GameObject: {fileID: 2035579477}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalPosition: {x: -0.63, y: -2.19, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2035579481
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2035579477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1dc6e541d2c6ebd408d027e57503d2a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  target: {fileID: 0}
+  followSpeed: 5
+  offset: {x: 0, y: 0, z: -10}
+  followMode: 1
+  followX: 1
+  followY: 1
+  useBounds: 0
+  cameraBounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}
+  updateLayerManagerReference: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -719,3 +920,5 @@ SceneRoots:
   - {fileID: 905042515}
   - {fileID: 1868031759}
   - {fileID: 1901158057}
+  - {fileID: 423118476}
+  - {fileID: 563843324}

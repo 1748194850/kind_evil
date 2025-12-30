@@ -51,25 +51,85 @@ namespace Core.Managers
         
         [Header("视差设置")]
         [SerializeField] private Transform parallaxReference; // 通常是摄像机
-        [SerializeField] private float parallaxStrength = 0.5f;
+        [SerializeField] private float parallaxStrength = 1f; // 视差强度（1.0 = 完全视差）
+        [SerializeField] private bool enableParallax = true; // 是否启用视差
+        [SerializeField] private float smoothFactor = 10f; // 平滑插值因子（值越大越平滑）
+        [SerializeField] private float updateThreshold = 0.001f; // 更新阈值（位移小于此值不更新）
         
         private Dictionary<string, List<GameObject>> layerObjects = new Dictionary<string, List<GameObject>>();
+        private Dictionary<string, List<Vector3>> layerInitialPositions = new Dictionary<string, List<Vector3>>(); // 存储对象的初始位置
         private Dictionary<RenderLayer, LayerSettings> layerSettingsByType = new Dictionary<RenderLayer, LayerSettings>();
         private Vector3 lastReferencePosition;
+        private Vector3 referenceStartPosition; // 参考点的初始位置
         
         protected override void Awake()
         {
             base.Awake();
             InitializeLayers();
+            
+            // 调试：输出初始化信息
+            UnityEngine.Debug.Log($"LayerManager: 已初始化 {layerSettings.Length} 个层");
+            for (int i = 0; i < layerSettings.Length; i++)
+            {
+                if (layerSettings[i] != null)
+                {
+                    UnityEngine.Debug.Log($"层 {i}: {layerSettings[i].LayerName} | SortingOrder: {layerSettings[i].SortingOrderBase} | Alpha: {layerSettings[i].AlphaMultiplier} | Parallax: {layerSettings[i].ParallaxFactor}");
+                }
+            }
         }
         
         private void Start()
         {
+            InitializeParallaxReference();
+        }
+        
+        /// <summary>
+        /// 初始化视差参考点
+        /// </summary>
+        private void InitializeParallaxReference()
+        {
             if (parallaxReference == null)
             {
-                parallaxReference = Camera.main.transform;
+                if (Camera.main != null)
+                {
+                    parallaxReference = Camera.main.transform;
+                }
+                else
+                {
+                    UnityEngine.Debug.LogWarning("LayerManager: 未找到视差参考点和主摄像机，视差功能将禁用");
+                    enableParallax = false;
+                    return;
+                }
             }
+            
             lastReferencePosition = parallaxReference.position;
+            referenceStartPosition = parallaxReference.position;
+            
+            // 存储所有对象的初始位置
+            StoreInitialPositions();
+        }
+        
+        /// <summary>
+        /// 存储所有对象的初始位置
+        /// </summary>
+        private void StoreInitialPositions()
+        {
+            foreach (var kvp in layerObjects)
+            {
+                string layerName = kvp.Key;
+                List<GameObject> objects = kvp.Value;
+                List<Vector3> positions = new List<Vector3>();
+                
+                foreach (var obj in objects)
+                {
+                    if (obj != null)
+                    {
+                        positions.Add(obj.transform.position);
+                    }
+                }
+                
+                layerInitialPositions[layerName] = positions;
+            }
         }
         
         private void Update()
@@ -101,24 +161,31 @@ namespace Core.Managers
                 RenderLayer.FullscreenEffect
             };
             
+            // 确保数组大小正确
+            if (layerSettings == null || layerSettings.Length != 7)
+            {
+                layerSettings = new LayerSettings[7];
+            }
+            
             for (int i = 0; i < 7; i++)
             {
-                if (i >= layerSettings.Length || layerSettings[i] == null)
+                // 如果设置不存在或层名称为空，创建默认设置
+                if (layerSettings[i] == null || string.IsNullOrEmpty(layerSettings[i].LayerName))
                 {
-                    var newSettings = CreateDefaultLayerSettings(i, defaultLayerNames[i], layerTypes[i]);
-                    
-                    if (i >= layerSettings.Length)
-                    {
-                        var newArray = new LayerSettings[i + 1];
-                        layerSettings.CopyTo(newArray, 0);
-                        layerSettings = newArray;
-                    }
-                    
-                    layerSettings[i] = newSettings;
+                    layerSettings[i] = CreateDefaultLayerSettings(i, defaultLayerNames[i], layerTypes[i]);
+                }
+                else
+                {
+                    // 如果设置已存在，确保层名称正确
+                    layerSettings[i].LayerName = defaultLayerNames[i];
                 }
                 
-                // 初始化对象列表
-                layerObjects[layerSettings[i].LayerName] = new List<GameObject>();
+                // 初始化对象列表和初始位置列表
+                if (!layerObjects.ContainsKey(layerSettings[i].LayerName))
+                {
+                    layerObjects[layerSettings[i].LayerName] = new List<GameObject>();
+                    layerInitialPositions[layerSettings[i].LayerName] = new List<Vector3>();
+                }
                 
                 // 建立枚举到设置的映射
                 layerSettingsByType[layerTypes[i]] = layerSettings[i];
@@ -151,19 +218,23 @@ namespace Core.Managers
         private float CalculateParallaxFactor(int layerIndex)
         {
             // 根据设计文档的视差因子计算
-            // 层1（极远）：0.1-0.2，层2（远）：0.3-0.5，层3（中远）：0.6-0.8
-            // 层4（正常）：1.0（基准层），层5（中近）：1.2-1.4，层6（近）：1.5-2.0
-            // 层7（全屏）：无视差（但这里设为1.0，因为全屏效果跟随摄像机）
+            // 层1（极远）：0.1-0.2，移动最慢（背景氛围）
+            // 层2（远）：0.3-0.5，移动较慢（环境装饰）
+            // 层3（辅助远景）：1.0，与层4相对静止（Boss背景部分等辅助内容）
+            // 层4（主游戏层）：1.0（基准层，无视差）
+            // 层5（辅助近景）：1.0，与层4相对静止（Boss突出部分等辅助内容）
+            // 层6（前景装饰）：1.5-2.0，移动最快（前景装饰）
+            // 层7（全屏特效）：1.0，跟随摄像机（全屏效果）
             
             switch (layerIndex)
             {
-                case 0: return 0.15f;  // 层1：极远
-                case 1: return 0.4f;   // 层2：远
-                case 2: return 0.7f;   // 层3：中远
-                case 3: return 1.0f;   // 层4：正常（基准层）
-                case 4: return 1.3f;   // 层5：中近
-                case 5: return 1.75f;  // 层6：近
-                case 6: return 1.0f;   // 层7：全屏（跟随摄像机，无视差）
+                case 0: return 0.15f;  // 层1：极远（天空盒层）
+                case 1: return 0.4f;   // 层2：远（背景装饰层）
+                case 2: return 1.0f;   // 层3：辅助远景（与层4相对静止）
+                case 3: return 1.0f;   // 层4：主游戏层（基准层，无视差）
+                case 4: return 1.0f;   // 层5：辅助近景（与层4相对静止）
+                case 5: return 1.75f;  // 层6：前景装饰（移动最快）
+                case 6: return 1.0f;   // 层7：全屏特效（跟随摄像机）
                 default: return 1.0f;
             }
         }
@@ -253,27 +324,77 @@ namespace Core.Managers
         
         private void UpdateParallax()
         {
-            if (parallaxReference == null) return;
+            // 如果视差未启用或参考点无效，跳过更新
+            if (!enableParallax || parallaxReference == null) return;
             
-            Vector3 deltaMovement = parallaxReference.position - lastReferencePosition;
+            // 计算参考点的位移
+            Vector3 currentPosition = parallaxReference.position;
+            Vector3 deltaMovement = currentPosition - lastReferencePosition;
             
-            foreach (var layer in layerSettings)
+            // 如果位移小于阈值，跳过更新（性能优化）
+            if (deltaMovement.magnitude < updateThreshold)
             {
+                return;
+            }
+            
+            // 计算参考点相对于初始位置的位移
+            Vector3 totalDisplacement = currentPosition - referenceStartPosition;
+            
+            // 更新每一层的视差
+            for (int i = 0; i < layerSettings.Length; i++)
+            {
+                var layer = layerSettings[i];
                 if (layer == null) continue;
                 
-                float parallax = (layer.ParallaxFactor - 1f) * parallaxStrength;
-                Vector3 parallaxOffset = deltaMovement * parallax;
+                // 视差因子为1.0的层无视差（层3、4、5、7都设为1.0，与基准层相对静止）
+                if (layer.ParallaxFactor == 1.0f) continue;
                 
-                foreach (var obj in layerObjects[layer.LayerName])
+                // 计算该层的视差偏移
+                // 视差因子：层1-3 < 1.0（移动慢），层5-6 > 1.0（移动快）
+                float parallaxMultiplier = (layer.ParallaxFactor - 1f) * parallaxStrength;
+                Vector3 parallaxOffset = totalDisplacement * parallaxMultiplier;
+                
+                // 更新该层所有对象的位置
+                UpdateLayerParallax(layer.LayerName, parallaxOffset);
+            }
+            
+            lastReferencePosition = currentPosition;
+        }
+        
+        /// <summary>
+        /// 更新指定层的视差位置
+        /// </summary>
+        private void UpdateLayerParallax(string layerName, Vector3 parallaxOffset)
+        {
+            if (!layerObjects.ContainsKey(layerName) || !layerInitialPositions.ContainsKey(layerName))
+                return;
+            
+            List<GameObject> objects = layerObjects[layerName];
+            List<Vector3> initialPositions = layerInitialPositions[layerName];
+            
+            for (int i = 0; i < objects.Count && i < initialPositions.Count; i++)
+            {
+                if (objects[i] != null)
                 {
-                    if (obj != null)
+                    // 计算目标位置：初始位置 + 视差偏移
+                    Vector3 targetPosition = initialPositions[i] + parallaxOffset;
+                    
+                    // 使用平滑插值（Lerp）避免抖动
+                    if (smoothFactor > 0)
                     {
-                        obj.transform.position += parallaxOffset;
+                        objects[i].transform.position = Vector3.Lerp(
+                            objects[i].transform.position,
+                            targetPosition,
+                            Time.deltaTime * smoothFactor
+                        );
+                    }
+                    else
+                    {
+                        // 如果不使用平滑，直接设置位置
+                        objects[i].transform.position = targetPosition;
                     }
                 }
             }
-            
-            lastReferencePosition = parallaxReference.position;
         }
         
         /// <summary>
@@ -300,6 +421,22 @@ namespace Core.Managers
             if (!layerObjects[layerName].Contains(obj))
             {
                 layerObjects[layerName].Add(obj);
+                
+                // 存储初始位置
+                if (!layerInitialPositions.ContainsKey(layerName))
+                {
+                    layerInitialPositions[layerName] = new List<Vector3>();
+                }
+                layerInitialPositions[layerName].Add(obj.transform.position);
+            }
+            else
+            {
+                // 如果对象已存在，更新其初始位置
+                int index = layerObjects[layerName].IndexOf(obj);
+                if (index >= 0 && index < layerInitialPositions[layerName].Count)
+                {
+                    layerInitialPositions[layerName][index] = obj.transform.position;
+                }
             }
         }
         
@@ -325,7 +462,14 @@ namespace Core.Managers
         {
             if (layerObjects.ContainsKey(layerName))
             {
+                int index = layerObjects[layerName].IndexOf(obj);
                 layerObjects[layerName].Remove(obj);
+                
+                // 同时移除初始位置
+                if (layerInitialPositions.ContainsKey(layerName) && index >= 0 && index < layerInitialPositions[layerName].Count)
+                {
+                    layerInitialPositions[layerName].RemoveAt(index);
+                }
             }
         }
         
@@ -387,7 +531,52 @@ namespace Core.Managers
         public void SetParallaxReference(Transform reference)
         {
             parallaxReference = reference;
-            lastReferencePosition = reference.position;
+            if (reference != null)
+            {
+                lastReferencePosition = reference.position;
+                referenceStartPosition = reference.position;
+                
+                // 重新存储所有对象的初始位置
+                StoreInitialPositions();
+            }
+        }
+        
+        /// <summary>
+        /// 启用/禁用视差效果
+        /// </summary>
+        public void SetParallaxEnabled(bool enabled)
+        {
+            enableParallax = enabled;
+        }
+        
+        /// <summary>
+        /// 重置视差（将所有对象恢复到初始位置）
+        /// </summary>
+        public void ResetParallax()
+        {
+            foreach (var kvp in layerObjects)
+            {
+                string layerName = kvp.Key;
+                List<GameObject> objects = kvp.Value;
+                
+                if (layerInitialPositions.ContainsKey(layerName))
+                {
+                    List<Vector3> initialPositions = layerInitialPositions[layerName];
+                    for (int i = 0; i < objects.Count && i < initialPositions.Count; i++)
+                    {
+                        if (objects[i] != null)
+                        {
+                            objects[i].transform.position = initialPositions[i];
+                        }
+                    }
+                }
+            }
+            
+            if (parallaxReference != null)
+            {
+                lastReferencePosition = parallaxReference.position;
+                referenceStartPosition = parallaxReference.position;
+            }
         }
         
         /// <summary>
