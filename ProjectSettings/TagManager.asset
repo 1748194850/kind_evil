@@ -41,3 +41,24 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Skybox_Far
+    uniqueID: 2049572883
+    locked: 0
+  - name: Background_Decor
+    uniqueID: 2694309905
+    locked: 0
+  - name: Auxiliary_Far
+    uniqueID: 1683095951
+    locked: 0
+  - name: Main_Game
+    uniqueID: 1667732081
+    locked: 0
+  - name: Auxiliary_Near
+    uniqueID: 4087388339
+    locked: 0
+  - name: Foreground_Decor
+    uniqueID: 1234486657
+    locked: 0
+  - name: Fullscreen_Effect
+    uniqueID: 92294277
+    locked: 0
