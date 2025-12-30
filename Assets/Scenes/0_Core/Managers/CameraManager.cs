@@ -12,11 +12,12 @@ namespace Core.Managers
     {
         [Header("跟随设置")]
         [SerializeField] private Transform target; // 跟随目标（通常是玩家）
-        [SerializeField] private float followSpeed = 5f; // 跟随速度
+        [SerializeField] private float followSpeed = 10f; // 跟随速度（Instant模式时无效，Smooth模式时越大跟随越快）
+        [SerializeField] private float smoothDampTime = 0.2f; // SmoothDamp模式的平滑时间（越小跟随越紧，建议0.1-0.3）
         [SerializeField] private Vector3 offset = new Vector3(0, 0, -10); // 摄像机偏移
         
         [Header("跟随模式")]
-        [SerializeField] private FollowMode followMode = FollowMode.Smooth;
+        [SerializeField] private FollowMode followMode = FollowMode.SmoothDamp; // 默认使用SmoothDamp，延迟更小
         [SerializeField] private bool followX = true; // 是否跟随X轴
         [SerializeField] private bool followY = true; // 是否跟随Y轴
         
@@ -29,12 +30,14 @@ namespace Core.Managers
         
         public enum FollowMode
         {
-            Instant,    // 瞬间跟随
-            Smooth,     // 平滑跟随
+            Instant,    // 瞬间跟随（无延迟）
+            Smooth,     // Lerp平滑跟随（可能有轻微延迟）
+            SmoothDamp, // SmoothDamp平滑跟随（更流畅，延迟较小）
             Fixed       // 固定位置（不跟随）
         }
         
         private Camera mainCamera;
+        private Vector3 velocity = Vector3.zero; // SmoothDamp使用的速度缓存
         
         protected override void Awake()
         {
@@ -150,11 +153,19 @@ namespace Core.Managers
             switch (followMode)
             {
                 case FollowMode.Instant:
+                    // 瞬间跟随，无延迟
                     transform.position = targetPosition;
                     break;
                     
                 case FollowMode.Smooth:
+                    // Lerp平滑跟随（基于速度系数）
                     transform.position = Vector3.Lerp(transform.position, targetPosition, followSpeed * Time.deltaTime);
+                    break;
+                    
+                case FollowMode.SmoothDamp:
+                    // SmoothDamp平滑跟随（基于时间，更流畅，延迟更可控）
+                    // smoothDampTime越小，跟随越紧，延迟越小（建议0.1-0.3）
+                    transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, smoothDampTime);
                     break;
                     
                 case FollowMode.Fixed:

@@ -53,7 +53,7 @@ namespace Core.Managers
         [SerializeField] private Transform parallaxReference; // 通常是摄像机
         [SerializeField] private float parallaxStrength = 1f; // 视差强度（1.0 = 完全视差）
         [SerializeField] private bool enableParallax = true; // 是否启用视差
-        [SerializeField] private float smoothFactor = 10f; // 平滑插值因子（值越大越平滑）
+        [SerializeField] private float smoothFactor = 0f; // 平滑插值因子（值越大越平滑）
         [SerializeField] private float updateThreshold = 0.001f; // 更新阈值（位移小于此值不更新）
         
         private Dictionary<string, List<GameObject>> layerObjects = new Dictionary<string, List<GameObject>>();
@@ -217,22 +217,23 @@ namespace Core.Managers
         
         private float CalculateParallaxFactor(int layerIndex)
         {
-            // 根据设计文档的视差因子计算
-            // 层1（极远）：0.1-0.2，移动最慢（背景氛围）
-            // 层2（远）：0.3-0.5，移动较慢（环境装饰）
-            // 层3（辅助远景）：1.0，与层4相对静止（Boss背景部分等辅助内容）
-            // 层4（主游戏层）：1.0（基准层，无视差）
-            // 层5（辅助近景）：1.0，与层4相对静止（Boss突出部分等辅助内容）
-            // 层6（前景装饰）：1.5-2.0，移动最快（前景装饰）
+            // 视差因子说明：0层是绝对基准（不动），层数越高移动越快
+            // 当摄像机移动时，factor值代表该层向左移动的速度比例
+            // 层1（极远）：0.1，几乎静止
+            // 层2（远）：0.4，移动较慢（环境装饰）
+            // 层3（辅助远景）：1.0，跟随摄像机（与层4相对静止）
+            // 层4（主游戏层）：1.0，跟随摄像机（基准层，相对摄像机静止）
+            // 层5（辅助近景）：1.0，跟随摄像机（与层4相对静止）
+            // 层6（前景装饰）：1.75，移动最快（前景装饰）
             // 层7（全屏特效）：1.0，跟随摄像机（全屏效果）
             
             switch (layerIndex)
             {
-                case 0: return 0.15f;  // 层1：极远（天空盒层）
-                case 1: return 0.4f;   // 层2：远（背景装饰层）
-                case 2: return 1.0f;   // 层3：辅助远景（与层4相对静止）
-                case 3: return 1.0f;   // 层4：主游戏层（基准层，无视差）
-                case 4: return 1.0f;   // 层5：辅助近景（与层4相对静止）
+                case 0: return 0.1f;   // 层1：极远（天空盒层）- 完全静止（0层基准）
+                case 1: return 0.4f;   // 层2：远（背景装饰层）- 移动较慢
+                case 2: return 1.0f;   // 层3：辅助远景（与层4相对静止，跟随摄像机）
+                case 3: return 1.0f;   // 层4：主游戏层（基准层，跟随摄像机，相对摄像机静止）
+                case 4: return 1.0f;   // 层5：辅助近景（与层4相对静止，跟随摄像机）
                 case 5: return 1.75f;  // 层6：前景装饰（移动最快）
                 case 6: return 1.0f;   // 层7：全屏特效（跟随摄像机）
                 default: return 1.0f;
@@ -271,7 +272,7 @@ namespace Core.Managers
             switch (layerIndex)
             {
                 case 0: return new Color(0.8f, 0.9f, 1.0f);  // 层1：冷蓝色调
-                case 1: return new Color(0.85f, 0.9f, 0.95f); // 层2：冷色调
+                case 1: return new Color(0.85f, 0.9f, 0.95f); // 层2：冷色调xx
                 case 2: return new Color(0.9f, 0.95f, 1.0f);  // 层3：轻微冷色调
                 case 3: return Color.white;                    // 层4：正常色彩
                 case 4: return new Color(1.0f, 0.98f, 0.95f); // 层5：轻微暖色调
@@ -341,18 +342,25 @@ namespace Core.Managers
             Vector3 totalDisplacement = currentPosition - referenceStartPosition;
             
             // 更新每一层的视差
+            // 视差逻辑：0层是绝对基准（不动），层数越高移动越快
+            // 当摄像机向右移动时，其他层应该向左移动（反向）
+            // 层4（factor=1.0）跟随摄像机，相对摄像机静止，所以跳过
             for (int i = 0; i < layerSettings.Length; i++)
             {
                 var layer = layerSettings[i];
                 if (layer == null) continue;
                 
-                // 视差因子为1.0的层无视差（层3、4、5、7都设为1.0，与基准层相对静止）
+                // 视差因子为1.0的层（层3、4、5、7）跟随摄像机，不需要视差偏移
                 if (layer.ParallaxFactor == 1.0f) continue;
                 
+                // 视差因子为0.0的层（层1）完全静止，不需要视差偏移
+                if (layer.ParallaxFactor == 0.0f) continue;
+                
                 // 计算该层的视差偏移
-                // 视差因子：层1-3 < 1.0（移动慢），层5-6 > 1.0（移动快）
-                float parallaxMultiplier = (layer.ParallaxFactor - 1f) * parallaxStrength;
-                Vector3 parallaxOffset = totalDisplacement * parallaxMultiplier;
+                // 新公式：parallaxOffset = -totalDisplacement * ParallaxFactor
+                // 这样：factor越小移动越慢，factor越大移动越快，且所有层都向左移动（反向）
+                // 例如：摄像机向右+10时，层1(0.15)向左-1.5，层2(0.4)向左-4，层6(1.75)向左-17.5
+                Vector3 parallaxOffset = -totalDisplacement * layer.ParallaxFactor * parallaxStrength;
                 
                 // 更新该层所有对象的位置
                 UpdateLayerParallax(layer.LayerName, parallaxOffset);
