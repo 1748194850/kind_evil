@@ -1,111 +1,50 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Core.Utilities;
-using Gameplay;
+using Core.Managers.Camera.Scenes;
+using Core.Managers.Camera.Behaviors;
 
 namespace Core.Managers
 {
     /// <summary>
     /// 摄像机管理器
-    /// 负责摄像机跟随玩家、视差参考点管理等
+    /// 负责管理多种镜头场景，支持动态切换
     /// </summary>
     public class CameraManager : Singleton<CameraManager>
     {
-        [Header("跟随设置")]
-        [SerializeField] private Transform target; // 跟随目标（通常是玩家）
-        [SerializeField] private float followSpeed = 10f; // 跟随速度（Instant模式时无效，Smooth模式时越大跟随越快）
-        [SerializeField] private float smoothDampTime = 0.2f; // SmoothDamp模式的平滑时间（越小跟随越紧，建议0.1-0.3）
-        [SerializeField] private Vector3 offset = new Vector3(0, 0, -10); // 摄像机偏移
+        [Header("默认配置")]
+        [SerializeField] private CameraSceneConfig defaultExplorationConfig; // 默认跑图配置
         
-        [Header("跟随模式")]
-        [SerializeField] private FollowMode followMode = FollowMode.SmoothDamp; // 默认使用SmoothDamp，延迟更小
-        [SerializeField] private bool followX = true; // 是否跟随X轴
-        [SerializeField] private bool followY = true; // 是否跟随Y轴
-        
-        [Header("边界限制")]
-        [SerializeField] private bool useBounds = false; // 是否使用边界限制
-        [SerializeField] private Bounds cameraBounds; // 摄像机移动边界
+        [Header("调试")]
+        [SerializeField] private bool showDebugLogs = true;
         
         [Header("视差集成")]
         [SerializeField] private bool updateLayerManagerReference = true; // 是否自动更新LayerManager的视差参考点
         
-        public enum FollowMode
-        {
-            Instant,    // 瞬间跟随（无延迟）
-            Smooth,     // Lerp平滑跟随（可能有轻微延迟）
-            SmoothDamp, // SmoothDamp平滑跟随（更流畅，延迟较小）
-            Fixed       // 固定位置（不跟随）
-        }
-        
-        private Camera mainCamera;
-        private Vector3 velocity = Vector3.zero; // SmoothDamp使用的速度缓存
+        private UnityEngine.Camera mainCamera;
+        private ICameraScene currentScene;
+        private Dictionary<CameraSceneConfig.SceneType, ICameraScene> sceneCache;
         
         protected override void Awake()
         {
             base.Awake();
             InitializeCamera();
+            InitializeScenes();
         }
         
         private void Start()
         {
-            // 如果未指定目标，尝试查找Player对象
-            if (target == null)
-            {
-                // 优先通过PlayerController查找（更可靠）
-                PlayerController playerController = FindObjectOfType<PlayerController>();
-                if (playerController != null)
-                {
-                    target = playerController.transform;
-                    UnityEngine.Debug.Log($"CameraManager: 通过PlayerController找到目标: {target.name}");
-                }
-                else
-                {
-                    // 备用方案：通过标签查找
-                    GameObject player = GameObject.FindGameObjectWithTag("Player");
-                    if (player != null)
-                    {
-                        target = player.transform;
-                        UnityEngine.Debug.Log($"CameraManager: 通过Player标签找到目标: {target.name}");
-                    }
-                }
-                
-                // 如果仍然没有找到，输出警告
-                if (target == null)
-                {
-                    UnityEngine.Debug.LogWarning("CameraManager: 未找到跟随目标！请确保场景中有PlayerController组件或Tag为'Player'的对象，或在Inspector中手动设置Target。");
-                }
-            }
-            else
-            {
-                UnityEngine.Debug.Log($"CameraManager: 使用手动设置的目标: {target.name}");
-            }
+            // 默认使用跑图场景
+            SwitchToScene(CameraSceneConfig.SceneType.Exploration, defaultExplorationConfig);
             
-            // 更新LayerManager的视差参考点为当前摄像机
-            if (updateLayerManagerReference && LayerManager.Instance != null && mainCamera != null)
-            {
-                LayerManager.Instance.SetParallaxReference(mainCamera.transform);
-                UnityEngine.Debug.Log("CameraManager: 已设置LayerManager的视差参考点为当前摄像机");
-            }
+            // 更新LayerManager的视差参考点
+            UpdateParallaxReference();
         }
         
         private void LateUpdate()
         {
-            if (target != null && followMode != FollowMode.Fixed)
-            {
-                FollowTarget();
-            }
-            else if (target == null && followMode != FollowMode.Fixed)
-            {
-                // 每60帧尝试重新查找一次（避免每帧都查找）
-                if (Time.frameCount % 60 == 0)
-                {
-                    PlayerController playerController = FindObjectOfType<PlayerController>();
-                    if (playerController != null)
-                    {
-                        target = playerController.transform;
-                        UnityEngine.Debug.Log($"CameraManager: 延迟找到目标: {target.name}");
-                    }
-                }
-            }
+            // 让当前场景更新
+            currentScene?.Update();
         }
         
         /// <summary>
@@ -113,107 +52,192 @@ namespace Core.Managers
         /// </summary>
         private void InitializeCamera()
         {
-            mainCamera = GetComponent<Camera>();
+            mainCamera = GetComponent<UnityEngine.Camera>();
             if (mainCamera == null)
             {
-                mainCamera = Camera.main;
+                mainCamera = UnityEngine.Camera.main;
             }
             
             if (mainCamera == null)
             {
-                UnityEngine.Debug.LogWarning("CameraManager: 未找到摄像机组件！");
+                Debug.LogWarning("CameraManager: 未找到摄像机组件！");
             }
         }
         
         /// <summary>
-        /// 跟随目标
+        /// 初始化所有镜头场景
         /// </summary>
-        private void FollowTarget()
+        private void InitializeScenes()
         {
-            Vector3 targetPosition = target.position + offset;
+            sceneCache = new Dictionary<CameraSceneConfig.SceneType, ICameraScene>();
+        }
+        
+        /// <summary>
+        /// 切换到指定场景
+        /// </summary>
+        public void SwitchToScene(CameraSceneConfig.SceneType sceneType, CameraSceneConfig config = null)
+        {
+            // 退出当前场景
+            currentScene?.OnExit();
             
-            // 根据设置决定是否跟随X/Y轴
-            if (!followX)
+            // 获取或创建新场景
+            ICameraScene newScene = GetOrCreateScene(sceneType);
+            if (newScene == null)
             {
-                targetPosition.x = transform.position.x;
-            }
-            if (!followY)
-            {
-                targetPosition.y = transform.position.y;
+                Debug.LogError($"CameraManager: 无法创建场景类型 {sceneType}");
+                return;
             }
             
-            // 应用边界限制
-            if (useBounds)
+            // 初始化新场景
+            if (config != null)
             {
-                targetPosition.x = Mathf.Clamp(targetPosition.x, cameraBounds.min.x, cameraBounds.max.x);
-                targetPosition.y = Mathf.Clamp(targetPosition.y, cameraBounds.min.y, cameraBounds.max.y);
+                newScene.Initialize(mainCamera, config);
+            }
+            else
+            {
+                // 如果没有提供配置，使用默认配置
+                if (sceneType == CameraSceneConfig.SceneType.Exploration && defaultExplorationConfig != null)
+                {
+                    newScene.Initialize(mainCamera, defaultExplorationConfig);
+                }
+                else
+                {
+                    // 创建临时默认配置
+                    var tempConfig = ScriptableObject.CreateInstance<CameraSceneConfig>();
+                    tempConfig.sceneType = sceneType;
+                    tempConfig.behaviorConfig = CameraBehaviorConfig.CreateDefault();
+                    newScene.Initialize(mainCamera, tempConfig);
+                }
             }
             
-            // 根据跟随模式更新位置
-            switch (followMode)
+            // 进入新场景
+            currentScene = newScene;
+            currentScene.OnEnter();
+            
+            // 更新LayerManager的视差参考点
+            UpdateParallaxReference();
+            
+            if (showDebugLogs)
             {
-                case FollowMode.Instant:
-                    // 瞬间跟随，无延迟
-                    transform.position = targetPosition;
-                    break;
-                    
-                case FollowMode.Smooth:
-                    // Lerp平滑跟随（基于速度系数）
-                    transform.position = Vector3.Lerp(transform.position, targetPosition, followSpeed * Time.deltaTime);
-                    break;
-                    
-                case FollowMode.SmoothDamp:
-                    // SmoothDamp平滑跟随（基于时间，更流畅，延迟更可控）
-                    // smoothDampTime越小，跟随越紧，延迟越小（建议0.1-0.3）
-                    transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, smoothDampTime);
-                    break;
-                    
-                case FollowMode.Fixed:
-                    // 不跟随
-                    break;
+                Debug.Log($"CameraManager: 切换到 {currentScene.GetSceneName()} 场景");
             }
         }
         
         /// <summary>
-        /// 设置跟随目标
+        /// 获取或创建指定类型的场景实例
+        /// </summary>
+        private ICameraScene GetOrCreateScene(CameraSceneConfig.SceneType type)
+        {
+            // 如果缓存中已有，直接返回
+            if (sceneCache.ContainsKey(type))
+            {
+                return sceneCache[type];
+            }
+            
+            // 创建新场景实例
+            ICameraScene newScene = null;
+            switch (type)
+            {
+                case CameraSceneConfig.SceneType.Exploration:
+                    newScene = new ExplorationScene();
+                    break;
+                case CameraSceneConfig.SceneType.BossBattle:
+                    newScene = new BossBattleScene();
+                    break;
+                // 可以继续添加其他场景类型
+                default:
+                    Debug.LogWarning($"CameraManager: 未知的场景类型 {type}，使用默认跑图场景");
+                    newScene = new ExplorationScene();
+                    break;
+            }
+            
+            // 缓存场景实例
+            if (newScene != null)
+            {
+                sceneCache[type] = newScene;
+            }
+            
+            return newScene;
+        }
+        
+        /// <summary>
+        /// 更新LayerManager的视差参考点
+        /// </summary>
+        private void UpdateParallaxReference()
+        {
+            if (updateLayerManagerReference && LayerManager.Instance != null && mainCamera != null)
+            {
+                LayerManager.Instance.SetParallaxReference(mainCamera.transform);
+                if (showDebugLogs)
+                {
+                    Debug.Log("CameraManager: 已设置LayerManager的视差参考点为当前摄像机");
+                }
+            }
+        }
+        
+        // ========== 公共API方法 ==========
+        
+        /// <summary>
+        /// 切换到跑图场景
+        /// </summary>
+        public void SwitchToExploration(CameraSceneConfig config = null)
+        {
+            SwitchToScene(CameraSceneConfig.SceneType.Exploration, config);
+        }
+        
+        /// <summary>
+        /// 切换到Boss战斗场景
+        /// </summary>
+        public void SwitchToBossBattle(Transform bossTransform, CameraSceneConfig config = null)
+        {
+            SwitchToScene(CameraSceneConfig.SceneType.BossBattle, config);
+            
+            // 设置Boss
+            if (currentScene is BossBattleScene bossScene && bossTransform != null)
+            {
+                bossScene.SetBoss(bossTransform);
+            }
+        }
+        
+        /// <summary>
+        /// 触发Boss镜头抖动
+        /// </summary>
+        public void ShakeBossCamera(float duration, float intensity)
+        {
+            if (currentScene is BossBattleScene bossScene)
+            {
+                bossScene.Shake(duration, intensity);
+            }
+        }
+        
+        /// <summary>
+        /// 获取当前场景类型
+        /// </summary>
+        public CameraSceneConfig.SceneType GetCurrentSceneType()
+        {
+            if (currentScene is ExplorationScene)
+                return CameraSceneConfig.SceneType.Exploration;
+            if (currentScene is BossBattleScene)
+                return CameraSceneConfig.SceneType.BossBattle;
+            
+            return CameraSceneConfig.SceneType.Exploration; // 默认
+        }
+        
+        // ========== 兼容旧代码的方法（保持向后兼容） ==========
+        
+        /// <summary>
+        /// 设置跟随目标（兼容旧代码）
         /// </summary>
         public void SetTarget(Transform newTarget)
         {
-            target = newTarget;
-        }
-        
-        /// <summary>
-        /// 设置跟随速度
-        /// </summary>
-        public void SetFollowSpeed(float speed)
-        {
-            followSpeed = speed;
-        }
-        
-        /// <summary>
-        /// 设置跟随模式
-        /// </summary>
-        public void SetFollowMode(FollowMode mode)
-        {
-            followMode = mode;
-        }
-        
-        /// <summary>
-        /// 设置摄像机边界
-        /// </summary>
-        public void SetCameraBounds(Bounds bounds)
-        {
-            cameraBounds = bounds;
-            useBounds = true;
-        }
-        
-        /// <summary>
-        /// 启用/禁用边界限制
-        /// </summary>
-        public void SetUseBounds(bool use)
-        {
-            useBounds = use;
+            if (currentScene is ExplorationScene explorationScene)
+            {
+                explorationScene.SetTarget(newTarget);
+            }
+            else
+            {
+                Debug.LogWarning("CameraManager: SetTarget方法仅在Exploration场景中有效");
+            }
         }
     }
 }
-

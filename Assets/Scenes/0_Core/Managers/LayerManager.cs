@@ -90,9 +90,9 @@ namespace Core.Managers
         {
             if (parallaxReference == null)
             {
-                if (Camera.main != null)
+                if (UnityEngine.Camera.main != null)
                 {
-                    parallaxReference = Camera.main.transform;
+                    parallaxReference = UnityEngine.Camera.main.transform;
                 }
                 else
                 {
