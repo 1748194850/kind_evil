@@ -1,12 +1,13 @@
 using UnityEngine;
 using Core.Utilities;
+using Core.Interfaces;
 
 namespace Core.Managers
 {
     /// <summary>
     /// 输入管理器
     /// </summary>
-    public class InputManager : Singleton<InputManager>
+    public class InputManager : Singleton<InputManager>, IInputManager
     {
         [Header("输入设置")]
         [SerializeField] private float deadZone = 0.2f;

@@ -239,5 +239,38 @@ namespace Core.Managers
                 Debug.LogWarning("CameraManager: SetTarget方法仅在Exploration场景中有效");
             }
         }
+        
+        // ========== 场景边界集成 ==========
+        
+        /// <summary>
+        /// 设置摄像机边界（用于场景边界限制）
+        /// </summary>
+        public void SetCameraBounds(Bounds bounds)
+        {
+            // 将边界信息传递给当前场景的配置
+            if (currentScene is ExplorationScene explorationScene)
+            {
+                // 通过配置更新边界
+                // 注意：这里需要修改ExplorationScene来支持动态边界更新
+                // 暂时先记录，后续可以通过重新初始化场景来应用边界
+                if (showDebugLogs)
+                {
+                    Debug.Log($"CameraManager: 设置摄像机边界 {bounds}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 启用/禁用边界限制
+        /// </summary>
+        public void SetUseBounds(bool use)
+        {
+            // 边界限制通过CameraSceneConfig的behaviorConfig.useBounds控制
+            // 这个方法保留用于运行时动态控制
+            if (showDebugLogs)
+            {
+                Debug.Log($"CameraManager: 设置使用边界限制: {use}");
+            }
+        }
     }
 }

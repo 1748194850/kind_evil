@@ -1,5 +1,6 @@
 using UnityEngine;
 using Core.Managers;
+using Core.Physics;
 
 namespace Gameplay
 {
@@ -18,6 +19,12 @@ namespace Gameplay
         [Header("跳跃设置")]
         [SerializeField] private bool requireGrounded = true; // 必须在地面才能跳跃
         [SerializeField] private bool allowAirJump = false; // 禁止空中跳跃
+        
+        [Header("边界设置")]
+        [Tooltip("场景边界管理器（如果场景中有SceneBounds组件，会自动查找）")]
+        [SerializeField] private SceneBounds sceneBounds;
+        [Tooltip("是否启用边界检测")]
+        [SerializeField] private bool enableBoundaryCheck = true;
         
         [Header("调试")]
         [SerializeField] private bool showDebugInfo = false; // 默认关闭调试信息
@@ -46,6 +53,9 @@ namespace Gameplay
             // 集成七层渲染系统：将玩家添加到层4（主游戏层）
             InitializeRenderLayer();
             
+            // 查找场景边界管理器
+            InitializeSceneBounds();
+            
             // 订阅输入事件
             if (InputManager.Instance != null)
             {
@@ -54,6 +64,26 @@ namespace Gameplay
             else
             {
                 Debug.LogWarning("PlayerController: InputManager not found!");
+            }
+        }
+        
+        /// <summary>
+        /// 初始化场景边界管理器
+        /// </summary>
+        private void InitializeSceneBounds()
+        {
+            // 如果Inspector中没有指定，尝试在场景中查找
+            if (sceneBounds == null)
+            {
+                sceneBounds = FindObjectOfType<SceneBounds>();
+                if (sceneBounds == null && showDebugInfo)
+                {
+                    Debug.LogWarning("PlayerController: 场景中未找到SceneBounds组件！边界检测将不会生效。");
+                }
+                else if (sceneBounds != null && showDebugInfo)
+                {
+                    Debug.Log("PlayerController: 已自动找到SceneBounds组件");
+                }
             }
         }
         
@@ -113,6 +143,12 @@ namespace Gameplay
                         spriteRenderer.flipX = true;
                     }
                 }
+            }
+            
+            // 检查边界（在移动之后检查）
+            if (enableBoundaryCheck && sceneBounds != null)
+            {
+                sceneBounds.CheckAndHandleBoundary(transform, rb);
             }
         }
         

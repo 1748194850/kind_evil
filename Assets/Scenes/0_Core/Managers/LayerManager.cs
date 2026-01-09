@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Core.Utilities;
+using Core.Interfaces;
 
 namespace Core.Managers
 {
@@ -21,7 +22,7 @@ namespace Core.Managers
     /// <summary>
     /// 7层渲染管理器
     /// </summary>
-    public class LayerManager : Singleton<LayerManager>
+    public class LayerManager : Singleton<LayerManager>, ILayerManager
     {
         [System.Serializable]
         public class LayerSettings
