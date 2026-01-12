@@ -36,7 +36,7 @@ namespace Core.Utilities.DependencyInjection
             Type type = typeof(T);
             if (services.ContainsKey(type))
             {
-                Debug.LogWarning($"ServiceLocator: Service {type.Name} already registered. Replacing...");
+                UnityEngine.Debug.LogWarning($"ServiceLocator: Service {type.Name} already registered. Replacing...");
                 services[type] = service;
             }
             else
@@ -56,7 +56,7 @@ namespace Core.Utilities.DependencyInjection
                 return service as T;
             }
             
-            Debug.LogError($"ServiceLocator: Service {type.Name} not found!");
+            UnityEngine.Debug.LogError($"ServiceLocator: Service {type.Name} not found!");
             return null;
         }
         

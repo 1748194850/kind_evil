@@ -50,8 +50,22 @@ namespace Gameplay
             // 获取 SpriteRenderer（用于翻转）
             spriteRenderer = GetComponent<SpriteRenderer>();
             
-            // 集成七层渲染系统：将玩家添加到层4（主游戏层）
-            InitializeRenderLayer();
+            // 设置Unity Layer为物理层（用于碰撞检测）
+            // 注意：需要在Unity的Tag and Layers设置中创建"MainGame"层
+            int mainGameLayer = LayerMask.NameToLayer("MainGame");
+            if (mainGameLayer != -1)
+            {
+                gameObject.layer = mainGameLayer;
+            }
+            else
+            {
+                // 如果MainGame层不存在，使用Default层，并输出警告
+                gameObject.layer = 0; // Default层
+                if (showDebugInfo)
+                {
+                    Debug.LogWarning("PlayerController: 'MainGame' Unity Layer not found! Please create it in Edit > Project Settings > Tags and Layers. Using Default layer for now.");
+                }
+            }
             
             // 查找场景边界管理器
             InitializeSceneBounds();
@@ -84,37 +98,6 @@ namespace Gameplay
                 {
                     Debug.Log("PlayerController: 已自动找到SceneBounds组件");
                 }
-            }
-        }
-        
-        /// <summary>
-        /// 初始化渲染层：将玩家添加到主游戏层（层4）
-        /// </summary>
-        private void InitializeRenderLayer()
-        {
-            // 确保LayerManager已初始化
-            if (LayerManager.Instance != null)
-            {
-                // 将玩家添加到层4（主游戏层）
-                LayerManager.Instance.AddObjectToLayer(gameObject, RenderLayer.MainGame);
-                
-                // 设置Unity Layer为物理层（用于碰撞检测）
-                // 注意：需要在Unity的Tag and Layers设置中创建"MainGame"层
-                int mainGameLayer = LayerMask.NameToLayer("MainGame");
-                if (mainGameLayer != -1)
-                {
-                    gameObject.layer = mainGameLayer;
-                }
-                else
-                {
-                    // 如果MainGame层不存在，使用Default层，并输出警告
-                    gameObject.layer = 0; // Default层
-                    Debug.LogWarning("PlayerController: 'MainGame' Unity Layer not found! Please create it in Edit > Project Settings > Tags and Layers. Using Default layer for now.");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("PlayerController: LayerManager not found! Player will not be assigned to render layer.");
             }
         }
         

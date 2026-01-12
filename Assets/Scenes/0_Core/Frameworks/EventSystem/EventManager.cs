@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Core.Utilities;
+using Core.Interfaces;
 
 namespace Core.Frameworks.EventSystem
 {
-    public class EventManager : Singleton<EventManager>
+    public class EventManager : Singleton<EventManager>, IEventManager
     {
         private Dictionary<string, Action<GameEvent>> eventDictionary = new Dictionary<string, Action<GameEvent>>();
         

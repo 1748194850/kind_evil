@@ -12,14 +12,87 @@ namespace Core.Managers
         [Header("输入设置")]
         [SerializeField] private float deadZone = 0.2f;
         
-        // 输入事件委托
-        public delegate void InputAction();
-        public event InputAction OnJumpPressed;
-        public event InputAction OnJumpReleased;
-        public event InputAction OnAttackPressed;
-        public event InputAction OnDashPressed;
-        public event InputAction OnInteractPressed;
-        public event InputAction OnMenuPressed;
+        // 输入事件委托 - 显式实现接口事件
+        event System.Action IInputManager.OnJumpPressed
+        {
+            add { onJumpPressed += value; }
+            remove { onJumpPressed -= value; }
+        }
+        
+        event System.Action IInputManager.OnJumpReleased
+        {
+            add { onJumpReleased += value; }
+            remove { onJumpReleased -= value; }
+        }
+        
+        event System.Action IInputManager.OnAttackPressed
+        {
+            add { onAttackPressed += value; }
+            remove { onAttackPressed -= value; }
+        }
+        
+        event System.Action IInputManager.OnDashPressed
+        {
+            add { onDashPressed += value; }
+            remove { onDashPressed -= value; }
+        }
+        
+        event System.Action IInputManager.OnInteractPressed
+        {
+            add { onInteractPressed += value; }
+            remove { onInteractPressed -= value; }
+        }
+        
+        event System.Action IInputManager.OnMenuPressed
+        {
+            add { onMenuPressed += value; }
+            remove { onMenuPressed -= value; }
+        }
+        
+        // 私有字段存储事件
+        private System.Action onJumpPressed;
+        private System.Action onJumpReleased;
+        private System.Action onAttackPressed;
+        private System.Action onDashPressed;
+        private System.Action onInteractPressed;
+        private System.Action onMenuPressed;
+        
+        // 公共事件访问器（用于向后兼容和直接访问）
+        public event System.Action OnJumpPressed
+        {
+            add { onJumpPressed += value; }
+            remove { onJumpPressed -= value; }
+        }
+        
+        public event System.Action OnJumpReleased
+        {
+            add { onJumpReleased += value; }
+            remove { onJumpReleased -= value; }
+        }
+        
+        public event System.Action OnAttackPressed
+        {
+            add { onAttackPressed += value; }
+            remove { onAttackPressed -= value; }
+        }
+        
+        public event System.Action OnDashPressed
+        {
+            add { onDashPressed += value; }
+            remove { onDashPressed -= value; }
+        }
+        
+        public event System.Action OnInteractPressed
+        {
+            add { onInteractPressed += value; }
+            remove { onInteractPressed -= value; }
+        }
+        
+        public event System.Action OnMenuPressed
+        {
+            add { onMenuPressed += value; }
+            remove { onMenuPressed -= value; }
+        }
         
         // 轴输入值
         private Vector2 moveInput;
@@ -51,32 +124,32 @@ namespace Core.Managers
             // 按钮输入（使用安全方法，避免输入轴不存在时报错）
             if (GetButtonDownSafe("Jump"))
             {
-                OnJumpPressed?.Invoke();
+                onJumpPressed?.Invoke();
             }
             
             if (GetButtonUpSafe("Jump"))
             {
-                OnJumpReleased?.Invoke();
+                onJumpReleased?.Invoke();
             }
             
             if (GetButtonDownSafe("Fire1"))
             {
-                OnAttackPressed?.Invoke();
+                onAttackPressed?.Invoke();
             }
             
             if (GetButtonDownSafe("Dash"))
             {
-                OnDashPressed?.Invoke();
+                onDashPressed?.Invoke();
             }
             
             if (GetButtonDownSafe("Interact"))
             {
-                OnInteractPressed?.Invoke();
+                onInteractPressed?.Invoke();
             }
             
             if (GetButtonDownSafe("Menu"))
             {
-                OnMenuPressed?.Invoke();
+                onMenuPressed?.Invoke();
             }
         }
         

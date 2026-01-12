@@ -68,7 +68,6 @@ if (InputManager.Instance != null)
 | `EventManager` | `Assets/Scenes/0_Core/Frameworks/EventSystem/EventManager.cs` | 事件系统 |
 | `SceneManager` | `Assets/Scenes/0_Core/Managers/SceneManager.cs` | 场景管理 |
 | `TimeManager` | `Assets/Scenes/0_Core/Managers/TimeManager.cs` | 时间管理 |
-| `LayerManager` | `Assets/Scenes/0_Core/Managers/LayerManager.cs` | 图层管理 |
 | `SaveManager` | `Assets/Scenes/0_Core/Frameworks/SaveSystem/SaveManager.cs` | 存档管理 |
 | `PoolManager` | `Assets/Scenes/0_Core/Frameworks/Pooling/PoolManager.cs` | 对象池管理 |
 

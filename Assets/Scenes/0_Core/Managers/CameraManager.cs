@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Core.Utilities;
+using Core.Interfaces;
 using Core.Managers.Camera.Scenes;
 using Core.Managers.Camera.Behaviors;
 
@@ -10,16 +11,13 @@ namespace Core.Managers
     /// 摄像机管理器
     /// 负责管理多种镜头场景，支持动态切换
     /// </summary>
-    public class CameraManager : Singleton<CameraManager>
+    public class CameraManager : Singleton<CameraManager>, ICameraManager
     {
         [Header("默认配置")]
         [SerializeField] private CameraSceneConfig defaultExplorationConfig; // 默认跑图配置
         
         [Header("调试")]
         [SerializeField] private bool showDebugLogs = true;
-        
-        [Header("视差集成")]
-        [SerializeField] private bool updateLayerManagerReference = true; // 是否自动更新LayerManager的视差参考点
         
         private UnityEngine.Camera mainCamera;
         private ICameraScene currentScene;
@@ -36,9 +34,6 @@ namespace Core.Managers
         {
             // 默认使用跑图场景
             SwitchToScene(CameraSceneConfig.SceneType.Exploration, defaultExplorationConfig);
-            
-            // 更新LayerManager的视差参考点
-            UpdateParallaxReference();
         }
         
         private void LateUpdate()
@@ -114,9 +109,6 @@ namespace Core.Managers
             currentScene = newScene;
             currentScene.OnEnter();
             
-            // 更新LayerManager的视差参考点
-            UpdateParallaxReference();
-            
             if (showDebugLogs)
             {
                 Debug.Log($"CameraManager: 切换到 {currentScene.GetSceneName()} 场景");
@@ -158,21 +150,6 @@ namespace Core.Managers
             }
             
             return newScene;
-        }
-        
-        /// <summary>
-        /// 更新LayerManager的视差参考点
-        /// </summary>
-        private void UpdateParallaxReference()
-        {
-            if (updateLayerManagerReference && LayerManager.Instance != null && mainCamera != null)
-            {
-                LayerManager.Instance.SetParallaxReference(mainCamera.transform);
-                if (showDebugLogs)
-                {
-                    Debug.Log("CameraManager: 已设置LayerManager的视差参考点为当前摄像机");
-                }
-            }
         }
         
         // ========== 公共API方法 ==========

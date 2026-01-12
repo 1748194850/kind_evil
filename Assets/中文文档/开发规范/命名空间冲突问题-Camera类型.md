@@ -39,4 +39,3 @@
 - `Scenes/0_Core/Managers/Camera/Behaviors/FollowBehavior.cs` ✅
 - `Scenes/0_Core/Managers/Camera/Effects/CameraShakeEffect.cs` ✅
 - `Scenes/0_Core/Managers/CameraManager.cs` ✅（使用了 `using Core.Managers.Camera.*`）
-- `Scenes/0_Core/Managers/LayerManager.cs` ✅（命名空间 `Core.Managers` 下有 `Core.Managers.Camera` 命名空间）

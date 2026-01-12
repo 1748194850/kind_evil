@@ -47,15 +47,6 @@ namespace Core.Managers
             serviceLocator.Register<IInputManager>(InputManager.Instance);
             if (showDebugLogs) Debug.Log("GameInitializer: IInputManager registered");
             
-            // 注册层管理器（必须存在）
-            if (LayerManager.Instance == null)
-            {
-                Debug.LogError("GameInitializer: LayerManager.Instance is null! Make sure LayerManager is in the scene.");
-                return;
-            }
-            serviceLocator.Register<ILayerManager>(LayerManager.Instance);
-            if (showDebugLogs) Debug.Log("GameInitializer: ILayerManager registered");
-            
             // 注册摄像机管理器（必须存在）
             if (CameraManager.Instance == null)
             {

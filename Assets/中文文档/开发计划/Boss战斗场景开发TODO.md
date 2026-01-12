@@ -71,7 +71,7 @@ Scenes/0_Core/Frameworks/Physics/
 - [ ] 创建测试场景
   - [ ] 地面平台（Ground Platform）
   - [ ] 基础地形（使用Tilemap或Sprite）
-  - [ ] 场景背景（使用七层渲染系统）
+  - [ ] 场景背景
 - [ ] 场景元素
   - [ ] 地面碰撞体设置
   - [ ] 平台设置（如果有）
@@ -544,7 +544,7 @@ Scenes/4_UI/Boss/
 - [ ] Boss场景元素
   - [ ] Boss战斗平台（如果有特殊地形）
   - [ ] 障碍物（如果有）
-  - [ ] Boss区域背景元素（使用七层渲染系统）
+  - [ ] Boss区域背景元素
 - [ ] Boss场景边界
   - [ ] 战斗区域边界（使用SceneBounds系统）
   - [ ] 摄像机边界（与Boss战斗镜头集成）
