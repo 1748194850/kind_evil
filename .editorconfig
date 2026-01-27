@@ -1,0 +1,50 @@
+﻿# EditorConfig 閰嶇疆鏂囦欢
+# 鐢ㄤ簬缁熶竴浠ｇ爜椋庢牸
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+tab_width = 4
+
+# C# 浠ｇ爜椋庢牸
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_new_line_between_query_expression_clauses = true
+
+# 鍛藉悕绾﹀畾
+dotnet_naming_rule.interface_should_be_begins_with_i.severity = warning
+dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
+dotnet_naming_rule.interface_should_be_begins_with_i.style = begins_with_i
+
+dotnet_naming_rule.types_should_be_pascal_case.severity = warning
+dotnet_naming_rule.types_should_be_pascal_case.symbols = types
+dotnet_naming_rule.types_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = warning
+dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
+dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
+
+# 浠ｇ爜璐ㄩ噺瑙勫垯
+dotnet_diagnostic.CA1001.severity = warning  # 瀹炵幇 IDisposable
+dotnet_diagnostic.CA1303.severity = warning  # 涓嶈灏嗗瓧闈㈤噺浣滀负鏈湴鍖栧弬鏁颁紶閫?dotnet_diagnostic.CA1304.severity = warning  # 鎸囧畾 CultureInfo
+dotnet_diagnostic.CA1305.severity = warning  # 鎸囧畾 IFormatProvider
+dotnet_diagnostic.CA1822.severity = suggestion  # 灏嗘垚鍛樻爣璁颁负 static
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
