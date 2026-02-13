@@ -3,13 +3,13 @@ using Core.Frameworks.Combat;
 using Core.Frameworks.EventSystem;
 using Core.Interfaces;
 using Core.Utilities.DependencyInjection;
-using Gameplay.Boss;
+using Gameplay.Boss.Attacks;
 
 namespace Gameplay.Boss
 {
     /// <summary>
     /// Boss主控制器
-    /// 管理Boss的基础行为和状态
+    /// 管理Boss的基础行为和状态，协调阶段、移动、攻击子系统
     /// </summary>
     [RequireComponent(typeof(HealthComponent))]
     [RequireComponent(typeof(Rigidbody2D))]
@@ -19,6 +19,13 @@ namespace Gameplay.Boss
         [Header("Boss配置")]
         [Tooltip("Boss配置数据（ScriptableObject）")]
         [SerializeField] private BossData bossData;
+        
+        [Header("AI设置")]
+        [Tooltip("战斗开始后自动启用AI")]
+        [SerializeField] private bool autoAI = true;
+        
+        [Tooltip("攻击选择间隔（秒）")]
+        [SerializeField] private float attackDecisionInterval = 1f;
         
         [Header("调试")]
         [SerializeField] private bool showDebugLogs = false;
@@ -35,6 +42,14 @@ namespace Gameplay.Boss
         private ICameraManager cameraManager;
         private IEventManager eventManager;
         
+        // 子系统引用（可选组件，有就用，没有也不报错）
+        private BossPhaseManager phaseManager;
+        private BossMovement bossMovement;
+        private BossAttackBase[] attacks;
+        
+        // AI决策
+        private float attackDecisionTimer;
+        
         // 事件
         public System.Action<IBoss.BossState> OnStateChanged;
         public System.Action OnBattleStarted;
@@ -43,7 +58,7 @@ namespace Gameplay.Boss
         
         private void Awake()
         {
-            // 获取组件
+            // 获取必需组件
             healthComponent = GetComponent<HealthComponent>();
             rb = GetComponent<Rigidbody2D>();
             
@@ -54,6 +69,11 @@ namespace Gameplay.Boss
             }
             
             Health = healthComponent;
+            
+            // 获取可选子系统
+            phaseManager = GetComponent<BossPhaseManager>();
+            bossMovement = GetComponent<BossMovement>();
+            attacks = GetComponentsInChildren<BossAttackBase>();
             
             // 订阅生命值事件
             Health.OnDeath += HandleDeath;
@@ -79,6 +99,21 @@ namespace Gameplay.Boss
             {
                 Debug.LogWarning($"{gameObject.name}: BossData is not assigned!");
             }
+            
+            // 订阅阶段变化事件
+            if (phaseManager != null)
+            {
+                phaseManager.OnPhaseChanged += HandlePhaseChanged;
+            }
+        }
+        
+        private void Update()
+        {
+            // 战斗中运行AI逻辑
+            if (IsInBattle && autoAI)
+            {
+                UpdateBattleAI();
+            }
         }
         
         /// <summary>
@@ -86,10 +121,7 @@ namespace Gameplay.Boss
         /// </summary>
         private void InitializeBoss()
         {
-            if (bossData == null || healthComponent == null)
-            {
-                return;
-            }
+            if (bossData == null || healthComponent == null) return;
             
             // 设置最大生命值
             healthComponent.SetMaxHealth(bossData.maxHealth);
@@ -104,7 +136,7 @@ namespace Gameplay.Boss
                 }
                 catch
                 {
-                    Debug.LogWarning($"{gameObject.name}: Tag '{bossData.bossTag}' does not exist. Please create it in Edit > Project Settings > Tags and Layers");
+                    Debug.LogWarning($"{gameObject.name}: Tag '{bossData.bossTag}' does not exist.");
                 }
             }
             
@@ -117,18 +149,109 @@ namespace Gameplay.Boss
             
             if (showDebugLogs)
             {
-                Debug.Log($"{BossName}: Initialized with {bossData.maxHealth} max health");
+                Debug.Log($"{BossName}: Initialized (HP: {bossData.maxHealth}, Attacks: {(attacks != null ? attacks.Length : 0)})");
             }
         }
+        
+        // ==================== 战斗AI ====================
+        
+        private void UpdateBattleAI()
+        {
+            // 先检查是否有攻击正在执行
+            bool isAnyAttacking = false;
+            if (attacks != null)
+            {
+                foreach (var attack in attacks)
+                {
+                    if (attack.IsAttacking)
+                    {
+                        isAnyAttacking = true;
+                        break;
+                    }
+                }
+            }
+            
+            // 攻击中不做决策
+            if (isAnyAttacking)
+            {
+                // 攻击中停止移动
+                if (bossMovement != null)
+                {
+                    bossMovement.Stop();
+                }
+                return;
+            }
+            
+            // 获取与目标的距离
+            float distanceToTarget = bossMovement != null ? bossMovement.GetDistanceToTarget() : float.MaxValue;
+            
+            // 尝试选择攻击
+            attackDecisionTimer -= Time.deltaTime;
+            if (attackDecisionTimer <= 0f)
+            {
+                attackDecisionTimer = attackDecisionInterval;
+                TrySelectAndExecuteAttack(distanceToTarget);
+            }
+            
+            // 如果没有攻击在执行，移动逻辑
+            if (bossMovement != null && !isAnyAttacking)
+            {
+                // 距离远：追逐
+                float attackDist = bossData != null ? bossData.attackDistance : 2f;
+                float chaseDist = bossData != null ? bossData.chaseDistance : 10f;
+                
+                if (distanceToTarget > attackDist)
+                {
+                    bossMovement.StartChase();
+                }
+                else
+                {
+                    // 在攻击距离内，停下等待攻击
+                    bossMovement.Stop();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 尝试选择并执行攻击
+        /// </summary>
+        private void TrySelectAndExecuteAttack(float distanceToTarget)
+        {
+            if (attacks == null || attacks.Length == 0) return;
+            
+            int currentPhase = phaseManager != null ? phaseManager.CurrentPhase : 1;
+            
+            // 收集所有可用攻击
+            System.Collections.Generic.List<BossAttackBase> availableAttacks = new System.Collections.Generic.List<BossAttackBase>();
+            
+            foreach (var attack in attacks)
+            {
+                if (attack.CanExecute(distanceToTarget) && attack.IsAvailableInPhase(currentPhase))
+                {
+                    availableAttacks.Add(attack);
+                }
+            }
+            
+            // 随机选择一个攻击
+            if (availableAttacks.Count > 0)
+            {
+                int index = Random.Range(0, availableAttacks.Count);
+                availableAttacks[index].StartAttack();
+                
+                if (showDebugLogs)
+                {
+                    Debug.Log($"{BossName}: Selected attack: {availableAttacks[index].AttackName}");
+                }
+            }
+        }
+        
+        // ==================== 战斗控制 ====================
         
         public void StartBattle()
         {
             if (State == IBoss.BossState.Battle)
             {
-                if (showDebugLogs)
-                {
-                    Debug.Log($"{BossName}: Already in battle");
-                }
+                if (showDebugLogs) Debug.Log($"{BossName}: Already in battle");
                 return;
             }
             
@@ -140,29 +263,42 @@ namespace Gameplay.Boss
                 cameraManager.SwitchToBossBattle(transform);
             }
             
+            // 开始移动AI
+            if (bossMovement != null)
+            {
+                bossMovement.StartChase();
+            }
+            
             // 触发事件
             OnBattleStarted?.Invoke();
-            
-            // 使用事件系统
             if (eventManager != null)
             {
                 eventManager.TriggerEvent(new StringEvent("BossBattleStarted", BossName));
             }
             
-            if (showDebugLogs)
-            {
-                Debug.Log($"{BossName}: Battle started!");
-            }
+            if (showDebugLogs) Debug.Log($"{BossName}: Battle started!");
         }
         
         public void EndBattle()
         {
-            if (State != IBoss.BossState.Battle)
-            {
-                return;
-            }
+            if (State != IBoss.BossState.Battle) return;
             
             ChangeState(IBoss.BossState.Idle);
+            
+            // 停止移动
+            if (bossMovement != null)
+            {
+                bossMovement.Stop();
+            }
+            
+            // 停止所有攻击
+            if (attacks != null)
+            {
+                foreach (var attack in attacks)
+                {
+                    if (attack.IsAttacking) attack.StopAttack();
+                }
+            }
             
             // 切换摄像机回探索模式
             if (cameraManager != null)
@@ -172,103 +308,81 @@ namespace Gameplay.Boss
             
             // 触发事件
             OnBattleEnded?.Invoke();
-            
-            // 使用事件系统
             if (eventManager != null)
             {
                 eventManager.TriggerEvent(new StringEvent("BossBattleEnded", BossName));
             }
             
-            if (showDebugLogs)
-            {
-                Debug.Log($"{BossName}: Battle ended");
-            }
+            if (showDebugLogs) Debug.Log($"{BossName}: Battle ended");
         }
         
-        /// <summary>
-        /// 改变Boss状态
-        /// </summary>
+        // ==================== 事件处理 ====================
+        
         private void ChangeState(IBoss.BossState newState)
         {
-            if (State == newState)
-            {
-                return;
-            }
+            if (State == newState) return;
             
             IBoss.BossState oldState = State;
             State = newState;
-            
             OnStateChanged?.Invoke(newState);
             
-            if (showDebugLogs)
-            {
-                Debug.Log($"{BossName}: State changed from {oldState} to {newState}");
-            }
+            if (showDebugLogs) Debug.Log($"{BossName}: State {oldState} -> {newState}");
         }
         
-        /// <summary>
-        /// 处理死亡
-        /// </summary>
         private void HandleDeath()
         {
             ChangeState(IBoss.BossState.Dead);
             
-            // 触发事件
             OnBossDefeated?.Invoke();
-            
-            // 使用事件系统
             if (eventManager != null)
             {
-                eventManager.TriggerEvent(new BossPhaseChangeEvent(0, BossName)); // 阶段0表示死亡
                 eventManager.TriggerEvent(new StringEvent("BossDefeated", BossName));
             }
             
-            // 结束战斗
             EndBattle();
-            
-            if (showDebugLogs)
-            {
-                Debug.Log($"{BossName}: Defeated!");
-            }
+            if (showDebugLogs) Debug.Log($"{BossName}: Defeated!");
         }
         
-        /// <summary>
-        /// 处理生命值变化
-        /// </summary>
         private void HandleHealthChanged(float currentHealth, float maxHealth)
         {
-            if (bossData == null)
-            {
-                return;
-            }
-            
-            float healthPercentage = currentHealth / maxHealth;
-            int currentPhase = bossData.GetPhase(healthPercentage);
-            
-            // 这里可以添加阶段切换逻辑
-            // 例如：当生命值降到某个阶段时，触发阶段转换事件
-            
+            // 阶段变化由BossPhaseManager处理
             if (showDebugLogs)
             {
-                Debug.Log($"{BossName}: Health changed to {currentHealth}/{maxHealth} ({healthPercentage:P0}), Phase {currentPhase}");
+                float pct = maxHealth > 0 ? currentHealth / maxHealth : 0f;
+                int phase = phaseManager != null ? phaseManager.CurrentPhase : (bossData != null ? bossData.GetPhase(pct) : 1);
+                Debug.Log($"{BossName}: HP {currentHealth}/{maxHealth} ({pct:P0}), Phase {phase}");
             }
         }
         
-        /// <summary>
-        /// 获取Boss配置数据
-        /// </summary>
-        public BossData GetBossData()
+        private void HandlePhaseChanged(int oldPhase, int newPhase)
         {
-            return bossData;
+            if (showDebugLogs)
+            {
+                Debug.Log($"{BossName}: Phase {oldPhase} -> {newPhase}");
+            }
+            
+            // 阶段变化时调整移动速度
+            if (bossMovement != null)
+            {
+                float speedMultiplier = 1f + (newPhase - 1) * 0.2f; // 每阶段加速20%
+                bossMovement.SetSpeedMultiplier(speedMultiplier);
+            }
         }
+        
+        // ==================== 公共方法 ====================
+        
+        public BossData GetBossData() => bossData;
         
         private void OnDestroy()
         {
-            // 取消订阅事件
             if (Health != null)
             {
                 Health.OnDeath -= HandleDeath;
                 Health.OnHealthChanged -= HandleHealthChanged;
+            }
+            if (phaseManager != null)
+            {
+                phaseManager.OnPhaseChanged -= HandlePhaseChanged;
             }
         }
     }

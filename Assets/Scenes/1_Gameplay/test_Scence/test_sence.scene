@@ -391,7 +391,8 @@ MonoBehaviour:
   groundCheckDistance: 0.3
   groundLayer:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
+  maxGroundAngle: 60
   showDebugInfo: 0
   debugLogInterval: 300
 --- !u!114 &521235604
@@ -874,7 +875,7 @@ GameObject:
   - component: {fileID: 1646611628}
   - component: {fileID: 1646611627}
   - component: {fileID: 1646611626}
-  m_Layer: 0
+  m_Layer: 8
   m_HasEditorInfo: 1
   m_Name: Ground
   m_TagString: Untagged
@@ -1243,7 +1244,7 @@ GameObject:
   - component: {fileID: 1989429984}
   - component: {fileID: 1989429987}
   - component: {fileID: 1989429986}
-  m_Layer: 0
+  m_Layer: 9
   m_HasEditorInfo: 1
   m_Name: DamageZone
   m_TagString: Untagged

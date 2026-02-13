@@ -2,19 +2,19 @@
 
 > **项目进度：** 第一个Boss战斗场景开发  
 > **创建时间：** 2024年  
-> **最后更新：** 2024年  
+> **最后更新：** 2026-02-13  
 > **架构：** 依赖注入 + 组件化设计
 
 ---
 
 ## 📋 目录
 
-1. [阶段零：基础环境搭建](#阶段零基础环境搭建)
-2. [阶段一：战斗基础系统](#阶段一战斗基础系统)
-3. [阶段二：Boss核心功能](#阶段二boss核心功能)
-4. [阶段三：战斗交互系统](#阶段三战斗交互系统)
+1. [阶段零：基础环境搭建](#阶段零基础环境搭建)（Unity 编辑器配置 Checklist）
+2. [阶段一：战斗基础系统](#阶段一战斗基础系统)（✅ 代码已完成）
+3. [阶段二：Boss核心功能](#阶段二boss核心功能)（移动 + 攻击 + 阶段）
+4. [阶段三：战斗交互系统](#阶段三战斗交互系统)（玩家攻击 + **玩家死亡/重生** + 战斗区域 + 状态机）
 5. [阶段四：Boss AI和行为](#阶段四boss-ai和行为)
-6. [阶段五：视觉效果和反馈](#阶段五视觉效果和反馈)
+6. [阶段五：视觉效果和反馈](#阶段五视觉效果和反馈)（**玩家 HUD** + Boss 血条 + 特效 + **游戏手感调优**）
 7. [阶段六：场景集成和测试](#阶段六场景集成和测试)
 
 ---
@@ -37,85 +37,79 @@
 
 ### 玩家系统
 - [x] **玩家组件化系统** - 已完成
-  - [x] PlayerMovement - 移动控制
+  - [x] PlayerMovement - 移动控制（已修复：输入在Update、物理在FixedUpdate）
   - [x] PlayerJump - 跳跃控制
-  - [x] GroundChecker - 地面检测
+  - [x] GroundChecker - 地面检测（已修复：法线过滤、配置验证、FixedUpdate）
   - [x] PlayerSpriteFlipper - 精灵翻转
 - [x] **场景边界系统**（SceneBounds）- 已完成
 - [x] **玩家边界检测**（PlayerBoundaryChecker）- 已完成
+
+### 战斗基础框架（2026-02-13 确认已完成）
+- [x] **生命值系统** - 已完成
+  - [x] IHealth.cs - 生命值接口
+  - [x] HealthComponent.cs - 通用生命值组件（含无敌时间、Revive 方法）
+  - [x] IDamageable.cs - 可受伤接口
+- [x] **伤害系统** - 已完成
+  - [x] DamageInfo.cs - 伤害信息数据结构
+  - [x] IDamageDealer.cs - 伤害施加接口
+  - [x] DamageDealer.cs - 伤害施加组件（已修复：使用 InstanceID 防内存泄漏）
+- [x] **Boss 基础框架** - 已完成
+  - [x] IBoss.cs - Boss 接口
+  - [x] BossController.cs - Boss 主控制器（含 AI 决策循环）
+  - [x] BossData.cs - Boss 配置数据（ScriptableObject）
+  - [x] TestBossData.asset - 测试用 Boss 数据
+
+### Boss 核心功能（阶段二，2026-02-13 确认已完成）
+- [x] **Boss 阶段系统** - 已完成
+  - [x] BossPhaseManager.cs - 监听血量变化、自动切换阶段
+- [x] **Boss 移动系统** - 已完成
+  - [x] BossMovement.cs - 追逐/巡逻/后退/移动到指定位置（已修复 FixedUpdate + 法线过滤）
+- [x] **Boss 攻击系统** - 已完成
+  - [x] BossAttackBase.cs - 攻击抽象基类（冷却/持续时间/阶段可用性）
+  - [x] MeleeAttack.cs - 第一个近战攻击模式
+  - [x] IBossAttack.cs - 攻击接口
+- [x] **测试辅助** - 已完成
+  - [x] BossTestHelper.cs - 按 B 键开始战斗
 
 ---
 
 ## 阶段零：基础环境搭建
 
-> **目标：** 确保基础场景和玩家系统正常工作，为Boss战斗提供稳定的测试环境
+> **目标：** 确保基础场景和玩家系统正常工作，为Boss战斗提供稳定的测试环境  
+> **状态：** 代码已全部完成，剩余工作为 **Unity 编辑器配置和验证**  
+> **操作指南：** 参考 `教程/阶段零-场景配置指南.md` 逐步操作  
+> **预计时间：** 1-2小时
 
-### 0.1 场景基础搭建 ✅（部分完成）
+### Unity 编辑器配置 Checklist
 
-**状态：** SceneBounds已存在，需要完善场景配置
+**场景与管理器：**
+- [ ] 打开或创建测试场景（`test_Scence/test_sence.scene`）
+- [ ] 创建 `Managers` 空对象，手动添加所有管理器（⚠️ Singleton 不会自动创建）
+  - [ ] GameInitializer（执行顺序设为 -100）
+  - [ ] InputManager / CameraManager / EventManager / GameManager
+  - [ ] SceneManager / TimeManager / SaveManager / PoolManager
+- [ ] 创建并配置 SceneBounds
 
-**任务清单：**
-- [x] 场景边界系统（SceneBounds.cs已存在）
-- [x] 在测试场景中配置SceneBounds
-  - [x] 设置场景边界参数
-  - [x] 配置边界处理模式
-  - [x] 测试边界检测功能
-- [x] 创建基础测试场景
-  - [x] 地面平台（Ground Platform）
-  - [ ] 基础地形（使用Tilemap或Sprite）
-  - [ ] 场景背景
-- [ ] 玩家出生点设置
-  - [ ] 定义玩家初始位置
-  - [ ] 测试玩家生成
+**地面与环境：**
+- [ ] 创建 Ground 对象（Sprite + BoxCollider2D）
+- [ ] 在 `Tags and Layers` 中创建 `Ground` 层
+- [ ] Ground 对象的 Layer 设为 `Ground`
+- [ ] （可选）基础地形、场景背景、玩家出生点
 
-**文件路径：**
-```
-Scenes/1_Gameplay/test_Scence/
-└── test_sence.scene (已存在，需要配置)
-```
+**玩家配置：**
+- [ ] Player 添加 Rigidbody2D + BoxCollider2D
+- [ ] Player 添加 PlayerMovement / PlayerJump / GroundChecker / PlayerSpriteFlipper / PlayerBoundaryChecker
+- [ ] GroundChecker 的 Ground Layer 设为 `Ground`（禁止 Nothing / Everything）
+- [ ] PlayerBoundaryChecker 关联 SceneBounds
 
----
+### 验证 Checklist
 
-### 0.2 玩家系统验证
-
-**优先级：** 🔴 高  
-**依赖：** 0.1 场景基础搭建  
-**预计时间：** 1-2小时
-
-**任务清单：**
-- [ ] 验证玩家组件系统
-  - [ ] PlayerMovement正常工作
-  - [ ] PlayerJump正常工作
-  - [ ] GroundChecker正常工作
-  - [ ] PlayerSpriteFlipper正常工作
-- [ ] 验证依赖注入
-  - [ ] GameInitializer正确注册服务
-  - [ ] 玩家组件能正确获取IInputManager
-- [ ] 测试场景边界
-  - [ ] 玩家不会掉出场景
-  - [ ] 边界检测正常工作
-  - [ ] 摄像机边界限制正常
-
-**注意：** 如果PlayerController还在使用，考虑移除或更新为组件系统
-
----
-
-### 0.3 场景配置完善
-
-**优先级：** 🟡 中  
-**依赖：** 0.1、0.2  
-**预计时间：** 1小时
-
-**任务清单：**
-- [ ] 在Unity编辑器中配置场景
-  - [ ] 添加GameInitializer到Managers GameObject
-  - [ ] 设置GameInitializer执行顺序为-100
-  - [ ] 配置SceneBounds组件
-  - [ ] 配置Player GameObject使用新组件系统
-- [ ] 测试完整流程
-  - [ ] 场景加载正常
-  - [ ] 所有管理器初始化正常
-  - [ ] 玩家功能正常
+- [ ] 运行游戏，Console 无 LogError
+- [ ] 玩家可以左右移动
+- [ ] 玩家可以跳跃，落地后能再次跳跃
+- [ ] 玩家不会粘在墙壁上
+- [ ] 玩家不会掉出场景边界
+- [ ] 摄像机跟随正常
 
 ---
 
@@ -123,30 +117,31 @@ Scenes/1_Gameplay/test_Scence/
 
 > **目标：** 建立战斗所需的基础系统，使用依赖注入和组件化设计
 
-### 1.1 生命值系统（Health System）
+### 1.1 生命值系统（Health System）✅ 已完成
 
 **优先级：** 🔴 高  
 **依赖：** 阶段零完成  
-**预计时间：** 2-3小时
+**状态：** ✅ 代码已实现（2026-02-13 确认）
 
 **任务清单：**
-- [ ] 创建 `IHealth.cs` - 生命值接口
-  - [ ] 获取当前生命值
-  - [ ] 获取最大生命值
-  - [ ] 受伤接口
-  - [ ] 治疗接口
-  - [ ] 死亡事件
-- [ ] 创建 `HealthComponent.cs` - 通用生命值组件
-  - [ ] 实现IHealth接口
-  - [ ] 生命值/最大生命值管理
-  - [ ] 无敌时间（Invincibility）
-  - [ ] 死亡处理
-  - [ ] 使用事件系统触发生命值变化事件
-- [ ] 创建 `IDamageable.cs` - 可受伤接口（可选）
-- [ ] 玩家集成生命值系统
+- [x] 创建 `IHealth.cs` - 生命值接口
+  - [x] 获取当前生命值
+  - [x] 获取最大生命值
+  - [x] 受伤接口
+  - [x] 治疗接口
+  - [x] 死亡事件
+- [x] 创建 `HealthComponent.cs` - 通用生命值组件
+  - [x] 实现IHealth接口
+  - [x] 生命值/最大生命值管理
+  - [x] 无敌时间（Invincibility）
+  - [x] 死亡处理
+  - [x] 使用事件系统触发生命值变化事件
+  - [x] Revive 复活方法（2026-02-13 新增）
+- [x] 创建 `IDamageable.cs` - 可受伤接口
+- [ ] 玩家集成生命值系统（需在 Unity 编辑器中操作）
   - [ ] 在Player GameObject上添加HealthComponent
   - [ ] 连接事件系统（触发PlayerHealthChangeEvent）
-- [ ] Boss集成生命值系统
+- [ ] Boss集成生命值系统（需在 Unity 编辑器中操作）
   - [ ] Boss基础类添加HealthComponent
   - [ ] 连接事件系统
 
@@ -165,27 +160,27 @@ Scenes/0_Core/Frameworks/Combat/
 
 ---
 
-### 1.2 伤害系统（Damage System）
+### 1.2 伤害系统（Damage System）✅ 已完成
 
 **优先级：** 🔴 高  
 **依赖：** 1.1 生命值系统  
-**预计时间：** 2-3小时
+**状态：** ✅ 代码已实现（2026-02-13 确认）
 
 **任务清单：**
-- [ ] 创建 `DamageInfo.cs` - 伤害信息数据结构
-  - [ ] 伤害值
-  - [ ] 伤害来源（GameObject引用）
-  - [ ] 伤害类型（物理/魔法/真实伤害等）
-  - [ ] 击退力（Vector2）
-  - [ ] 伤害方向
-- [ ] 创建 `IDamageDealer.cs` - 伤害施加接口
-- [ ] 创建 `DamageDealer.cs` - 伤害施加组件
-  - [ ] 实现IDamageDealer接口
-  - [ ] 碰撞检测伤害（使用Collider2D）
-  - [ ] 触发伤害区域
-  - [ ] 伤害冷却（避免重复伤害）
-  - [ ] 伤害过滤（只伤害特定层/标签）
-- [ ] 集成到战斗系统
+- [x] 创建 `DamageInfo.cs` - 伤害信息数据结构
+  - [x] 伤害值
+  - [x] 伤害来源（GameObject引用）
+  - [x] 伤害类型（物理/魔法/真实伤害等）
+  - [x] 击退力（Vector2）
+  - [x] 伤害方向
+- [x] 创建 `IDamageDealer.cs` - 伤害施加接口
+- [x] 创建 `DamageDealer.cs` - 伤害施加组件
+  - [x] 实现IDamageDealer接口
+  - [x] 碰撞检测伤害（使用Collider2D）
+  - [x] 触发伤害区域
+  - [x] 伤害冷却（避免重复伤害，使用 InstanceID 作为 key）
+  - [x] 伤害过滤（只伤害特定层/标签）
+- [ ] 集成到战斗系统（需在 Unity 编辑器中操作）
   - [ ] 玩家攻击伤害配置
   - [ ] Boss攻击伤害配置
 
@@ -204,30 +199,30 @@ Scenes/0_Core/Frameworks/Combat/
 
 ---
 
-### 1.3 Boss基础类框架
+### 1.3 Boss基础类框架 ✅ 已完成
 
 **优先级：** 🟡 中  
 **依赖：** 1.1 生命值系统  
-**预计时间：** 3-4小时
+**状态：** ✅ 代码已实现（2026-02-13 确认）
 
 **任务清单：**
-- [ ] 创建 `IBoss.cs` - Boss接口
-  - [ ] 获取Boss状态
-  - [ ] 获取Boss生命值
-  - [ ] 开始战斗
-  - [ ] 结束战斗
-- [ ] 创建 `BossController.cs` - Boss主控制器
-  - [ ] 实现IBoss接口
-  - [ ] Boss基础属性（名称、状态等）
-  - [ ] 集成HealthComponent
-  - [ ] 与摄像机系统集成（通过ICameraManager接口）
-  - [ ] 与事件系统集成（通过IEventManager接口）
-  - [ ] 使用依赖注入获取服务
-- [ ] 创建 `BossData.cs` - Boss配置数据（ScriptableObject）
-  - [ ] Boss基础属性配置
-  - [ ] 生命值配置
-  - [ ] 攻击配置
-- [ ] Boss预制体基础结构
+- [x] 创建 `IBoss.cs` - Boss接口
+  - [x] 获取Boss状态
+  - [x] 获取Boss生命值
+  - [x] 开始战斗
+  - [x] 结束战斗
+- [x] 创建 `BossController.cs` - Boss主控制器
+  - [x] 实现IBoss接口
+  - [x] Boss基础属性（名称、状态等）
+  - [x] 集成HealthComponent
+  - [x] 与摄像机系统集成（通过ICameraManager接口）
+  - [x] 与事件系统集成（通过IEventManager接口）
+  - [x] 使用依赖注入获取服务
+- [x] 创建 `BossData.cs` - Boss配置数据（ScriptableObject）
+  - [x] Boss基础属性配置
+  - [x] 生命值配置
+  - [x] 攻击配置
+- [ ] Boss预制体基础结构（需在 Unity 编辑器中操作）
   - [ ] 创建Boss GameObject
   - [ ] 添加必要的组件（Rigidbody2D、Collider2D等）
   - [ ] 设置Boss标签（Tag: "Boss"）
@@ -252,49 +247,47 @@ Scenes/1_Gameplay/Boss/
 
 > **目标：** 实现Boss的基本战斗功能
 
-### 2.1 Boss阶段系统
+### 2.1 Boss阶段系统 ✅ 已完成
 
 **优先级：** 🟡 中  
 **依赖：** 1.3 Boss基础类  
-**预计时间：** 3-4小时
+**状态：** ✅ 代码已实现（BossPhaseManager.cs）
 
 **任务清单：**
-- [ ] 创建 `BossPhase.cs` - Boss阶段枚举/配置
-  - [ ] 阶段定义（Phase1, Phase2, Phase3等）
-  - [ ] 阶段触发条件（生命值百分比）
-- [ ] 实现Boss阶段切换逻辑
-  - [ ] 基于生命值百分比的阶段切换
-  - [ ] 阶段转换事件（使用BossPhaseChangeEvent）
-  - [ ] 不同阶段的属性变化（速度、攻击频率等）
-- [ ] 创建阶段配置数据
-  - [ ] 每个阶段的触发条件
-  - [ ] 每个阶段的特殊行为
-  - [ ] 在BossData中配置阶段信息
+- [x] 创建 `BossPhaseManager.cs` - Boss阶段管理器
+  - [x] 阶段定义（Phase1, Phase2, Phase3 — 由 BossData 阈值决定）
+  - [x] 阶段触发条件（生命值百分比）
+- [x] 实现Boss阶段切换逻辑
+  - [x] 基于生命值百分比的阶段切换
+  - [x] 阶段转换事件（OnPhaseChanged + BossPhaseChangeEvent）
+  - [x] 不同阶段的属性变化（BossController 中每阶段加速 20%）
+- [x] 阶段配置数据（在 BossData 中：phase1Threshold / phase2Threshold）
 
-**示例阶段设计：**
+**阶段设计：**
 - **阶段1（100%-70%）：** 基础攻击模式
-- **阶段2（70%-40%）：** 增加攻击频率，新攻击模式
-- **阶段3（40%-0%）：** 狂暴模式，所有攻击模式
+- **阶段2（70%-40%）：** 增加攻击频率，移动速度+20%
+- **阶段3（40%-0%）：** 狂暴模式，移动速度+40%
 
 ---
 
-### 2.2 Boss移动系统
+### 2.2 Boss移动系统 ✅ 已完成
 
 **优先级：** 🟡 中  
 **依赖：** 1.3 Boss基础类  
-**预计时间：** 2-3小时
+**状态：** ✅ 代码已实现（BossMovement.cs，已修复 FixedUpdate + 法线过滤）
 
 **任务清单：**
-- [ ] 创建 `BossMovement.cs` - Boss移动组件
-  - [ ] 基础移动（左右移动、跳跃）
-  - [ ] 跟随玩家移动
-  - [ ] 移动到指定位置
-  - [ ] 移动边界限制（使用ISceneBounds接口）
-  - [ ] 使用依赖注入获取玩家位置
-- [ ] Boss移动行为
-  - [ ] 待机时的巡逻
-  - [ ] 战斗时的移动策略
-  - [ ] 不同阶段的移动模式
+- [x] 创建 `BossMovement.cs` - Boss移动组件
+  - [x] 基础移动（左右移动、跳跃）
+  - [x] 跟随玩家移动（Chase 状态）
+  - [x] 移动到指定位置（MoveTo 状态 + 回调）
+  - [ ] 移动边界限制（使用ISceneBounds接口）— 待后续集成
+  - [x] 自动查找 Player（通过 Tag 或手动拖入）
+- [x] Boss移动行为
+  - [x] 待机时的巡逻（Patrol 状态）
+  - [x] 战斗时的追逐策略（Chase 状态 + stoppingDistance）
+  - [x] 后退行为（Retreat 状态）
+  - [x] 阶段速度缩放（SetSpeedMultiplier）
 
 **文件路径：**
 ```
@@ -304,49 +297,46 @@ Scenes/1_Gameplay/Boss/
 
 **设计原则：**
 - 组件化设计，独立于BossController
-- 使用接口获取依赖（ISceneBounds）
-- 通过事件系统获取玩家位置（或直接查找）
+- 物理操作在 FixedUpdate，地面检测含法线过滤
+- 自动查找 Player（Tag: "Player"），也支持手动拖入
 
 ---
 
-### 2.3 Boss攻击系统基础
+### 2.3 Boss攻击系统基础 ✅ 已完成
 
 **优先级：** 🟡 中  
-**依赖：** 1.2 伤害系统、2.2 Boss移动系统  
-**预计时间：** 4-5小时
+**依赖：** 1.2 伤害系统（与 2.2 移动系统**无依赖**，可并行开发）  
+**状态：** ✅ 代码已实现（BossAttackBase.cs + MeleeAttack.cs）
 
 **任务清单：**
-- [ ] 创建 `IBossAttack.cs` - 攻击接口
-  - [ ] 开始攻击
-  - [ ] 执行攻击
-  - [ ] 结束攻击
-  - [ ] 检查是否可以执行
-- [ ] 创建 `BossAttack.cs` - 攻击基类
-  - [ ] 实现IBossAttack接口
-  - [ ] 攻击冷却时间
-  - [ ] 攻击伤害配置
-  - [ ] 攻击动画/效果接口
-- [ ] 实现第一个简单攻击模式
-  - [ ] `MeleeAttack.cs` - 近战攻击（挥击）
-  - [ ] 攻击动画/效果
-  - [ ] 伤害区域检测（使用DamageDealer）
-- [ ] 攻击选择系统
-  - [ ] 根据阶段选择攻击
-  - [ ] 攻击优先级
-  - [ ] 随机攻击选择
+- [x] 创建 `IBossAttack.cs` - 攻击接口
+  - [x] 开始攻击 / 停止攻击
+  - [x] 检查是否可以执行（距离 + 冷却 + 阶段）
+- [x] 创建 `BossAttackBase.cs` - 攻击基类
+  - [x] 实现IBossAttack接口
+  - [x] 攻击冷却时间
+  - [x] 攻击持续时间 + 自动结束
+  - [x] 阶段可用性检查（IsAvailableInPhase）
+- [x] 实现第一个简单攻击模式
+  - [x] `MeleeAttack.cs` - 近战攻击（OverlapCircle 检测 + 击退）
+  - [ ] 攻击动画/效果 — 待后续实现
+  - [x] 伤害区域检测（通过 IDamageable 接口）
+- [x] 攻击选择系统（在 BossController.UpdateBattleAI 中实现）
+  - [x] 根据阶段选择攻击
+  - [x] 随机攻击选择
 
 **文件路径：**
 ```
 Scenes/1_Gameplay/Boss/Attacks/
-├── IBossAttack.cs
-├── BossAttack.cs (基类)
+├── IBossAttack.cs (接口)
+├── BossAttackBase.cs (抽象基类)
 └── MeleeAttack.cs (第一个攻击)
 ```
 
 **设计原则：**
 - 使用接口（IBossAttack）实现策略模式
 - 每个攻击独立实现，易于扩展
-- 使用DamageDealer组件处理伤害
+- 通过 IDamageable 接口造成伤害
 
 ---
 
@@ -388,10 +378,50 @@ Scenes/1_Gameplay/Player/Components/
 
 ---
 
-### 3.2 战斗区域管理
+### 3.2 玩家死亡与重生系统
+
+**优先级：** 🟡 中  
+**依赖：** 1.1 生命值系统  
+**预计时间：** 3-4小时
+
+**任务清单：**
+- [ ] 创建 `PlayerDeathHandler.cs` - 玩家死亡处理组件
+  - [ ] 监听 HealthComponent 的 OnDeath 事件
+  - [ ] 死亡状态处理（禁用输入、播放死亡动画）
+  - [ ] 触发 PlayerDeathEvent（通过事件系统）
+- [ ] 重生机制
+  - [ ] 重生点管理（检查点系统 或 战斗区域入口）
+  - [ ] 重生流程（使用 HealthComponent.Revive() 恢复生命值）
+  - [ ] 重生后的无敌时间
+  - [ ] 重生动画/特效
+- [ ] 死亡 UI
+  - [ ] 死亡画面（"You Died" / 半透明遮罩）
+  - [ ] 重试按钮 / 返回主菜单按钮
+  - [ ] 死亡统计（可选：死亡次数、战斗时长）
+- [ ] Boss 战斗中的死亡处理
+  - [ ] 玩家死亡后 Boss 重置状态（回到战前状态）
+  - [ ] 战斗区域解锁（允许重新进入触发）
+  - [ ] Boss 生命值是否重置（设计决策）
+
+**文件路径：**
+```
+Scenes/1_Gameplay/Player/Components/
+└── PlayerDeathHandler.cs
+Scenes/4_UI/Player/
+└── DeathScreenUI.cs
+```
+
+**设计原则：**
+- 使用 HealthComponent.Revive() 而非 Heal()（死亡状态无法 Heal）
+- 通过事件系统解耦死亡通知和 UI 响应
+- Boss 战斗中的重生需要与 BossController 协调
+
+---
+
+### 3.3 战斗区域管理
 
 **优先级：** 🟢 低  
-**依赖：** 1.3 Boss基础类  
+**依赖：** 1.3 Boss 基础类  
 **预计时间：** 2小时
 
 **任务清单：**
@@ -414,7 +444,7 @@ Scenes/1_Gameplay/Boss/
 
 ---
 
-### 3.3 Boss战斗状态机
+### 3.4 Boss战斗状态机
 
 **优先级：** 🟡 中  
 **依赖：** 2.1 Boss阶段系统、2.3 Boss攻击系统  
@@ -543,10 +573,40 @@ Scenes/1_Gameplay/Boss/Attacks/
 
 > **目标：** 增强战斗的视觉体验和反馈
 
-### 5.1 Boss血条UI
+### 5.1 玩家 HUD（血条 + 状态）
 
 **优先级：** 🟡 中  
 **依赖：** 1.1 生命值系统  
+**预计时间：** 2-3小时
+
+**任务清单：**
+- [ ] 创建玩家血条 UI
+  - [ ] 血条预制体（Screen Space - Overlay Canvas）
+  - [ ] 血条动画（受伤时平滑减少、治疗时平滑增加）
+  - [ ] 低血量警告效果（血条变红 / 屏幕边缘泛红）
+- [ ] 血条数据绑定
+  - [ ] 监听 HealthComponent.OnHealthChanged 事件
+  - [ ] 显示当前/最大生命值数字（可选）
+- [ ] UI 布局
+  - [ ] 屏幕左上角固定位置
+  - [ ] 适配不同分辨率
+
+**文件路径：**
+```
+Scenes/4_UI/Player/
+└── PlayerHealthBar.cs
+```
+
+**设计原则：**
+- 通过事件系统监听，UI 层与游戏逻辑完全解耦
+- 复用 HealthComponent 的 OnHealthChanged 事件，不需要额外轮询
+
+---
+
+### 5.2 Boss 血条 UI
+
+**优先级：** 🟡 中  
+**依赖：** 1.1 生命值系统、2.1 Boss 阶段系统  
 **预计时间：** 3-4小时
 
 **任务清单：**
@@ -573,7 +633,7 @@ Scenes/4_UI/Boss/
 
 ---
 
-### 5.2 战斗特效
+### 5.3 战斗特效
 
 **优先级：** 🟢 低  
 **依赖：** 3.1 玩家攻击系统、2.3 Boss攻击系统  
@@ -599,7 +659,7 @@ Scenes/4_UI/Boss/
 
 ---
 
-### 5.3 镜头效果
+### 5.4 镜头效果
 
 **优先级：** 🟢 低  
 **依赖：** 摄像机系统（已完成）  
@@ -621,7 +681,7 @@ Scenes/4_UI/Boss/
 
 ---
 
-### 5.4 音效和音乐
+### 5.5 音效和音乐
 
 **优先级：** 🟢 低  
 **依赖：** 无  
@@ -642,6 +702,37 @@ Scenes/4_UI/Boss/
   - [ ] 受到伤害音效
 
 **注意：** 如果还没有音频管理器，需要先创建AudioManager
+
+---
+
+### 5.6 游戏手感调优（Game Feel）
+
+**优先级：** 🟡 中  
+**依赖：** 3.1 玩家攻击系统、2.3 Boss攻击系统  
+**预计时间：** 3-4小时（持续迭代）
+
+**任务清单：**
+- [ ] 击中停顿（Hitstop/Freeze Frame）
+  - [ ] 玩家攻击命中时短暂冻结（2-4帧，使用 TimeManager）
+  - [ ] Boss 重击命中时短暂冻结
+  - [ ] 可配置的冻结时长（在 DamageDealer 或攻击数据中）
+- [ ] 攻击判定调优
+  - [ ] 攻击判定帧窗口（Attack Active Frames）
+  - [ ] 攻击前摇/后摇时长
+  - [ ] 判定区域大小与动画匹配
+- [ ] 受击反馈
+  - [ ] 受击硬直时长（Hitstun Duration）
+  - [ ] 击退力度曲线（不是线性，而是先快后慢）
+  - [ ] 击退方向计算（基于攻击者位置）
+- [ ] 移动手感
+  - [ ] 加速/减速曲线（避免移动过于生硬）
+  - [ ] 跳跃手感（土狼时间 Coyote Time / 跳跃缓冲 Jump Buffer）
+  - [ ] 空中控制力度
+
+**设计原则：**
+- 所有手感参数通过 ScriptableObject 或 Inspector 配置，方便快速迭代
+- 使用 TimeManager.TimeScale 实现击中停顿
+- 手感调优是**持续过程**，不是一次性完成
 
 ---
 
@@ -764,31 +855,36 @@ Scenes/1_Gameplay/Boss/
 
 ## 📊 开发优先级总结
 
-### 🔴 高优先级（必须先完成）
-1. **场景基础搭建** - 确保测试环境稳定
-2. **玩家系统验证** - 确保玩家功能正常
-3. **生命值系统** - 所有战斗的基础
-4. **伤害系统** - 战斗交互的核心
+### ✅ 已完成（阶段一 + 阶段二）
+1. ~~**生命值系统**~~ - ✅ 代码已实现
+2. ~~**伤害系统**~~ - ✅ 代码已实现
+3. ~~**Boss基础类**~~ - ✅ 代码已实现
+4. ~~**Boss阶段系统**~~ - ✅ BossPhaseManager 已实现
+5. ~~**Boss移动系统**~~ - ✅ BossMovement 已实现（含 FixedUpdate 修复）
+6. ~~**Boss攻击系统**~~ - ✅ BossAttackBase + MeleeAttack 已实现
+
+### 🔴 高优先级（当前最需要做的）
+7. **场景配置完善** - 在 Unity 编辑器中配置所有组件和层
+8. **玩家系统验证** - 在 Unity 中实际测试完整战斗流程
+9. **玩家攻击系统** - 让玩家可以攻击 Boss（代码开发）
 
 ### 🟡 中优先级（核心功能）
-5. **Boss基础类** - Boss功能的基础框架
-6. **Boss阶段系统** - 增加战斗深度
-7. **Boss移动系统** - Boss基本行为
-8. **Boss攻击系统** - Boss战斗核心
-9. **玩家攻击系统** - 玩家与Boss交互
-10. **Boss战斗状态机** - 智能行为基础
-11. **Boss AI决策** - 智能战斗
-12. **多种攻击模式** - 战斗多样性
-13. **Boss血条UI** - 玩家反馈
-14. **Boss战斗场景搭建** - 完整体验
-15. **Boss触发系统** - 场景集成
+10. **玩家死亡/重生系统** - 完整的战斗循环
+11. **Boss战斗状态机** - 更智能的 AI 行为（替代当前简单 AI）
+12. **Boss AI决策** - 智能战斗
+13. **多种攻击模式** - 战斗多样性
+14. **玩家血条 UI** - 玩家状态反馈
+15. **Boss血条UI** - Boss 状态反馈
+16. **游戏手感调优** - 击中停顿、受击反馈、移动手感
+17. **Boss战斗场景搭建** - 完整体验
+18. **Boss触发系统** - 场景集成
 
 ### 🟢 低优先级（增强体验）
-16. **战斗特效** - 视觉增强
-17. **镜头效果** - 体验增强
-18. **音效音乐** - 氛围营造
-19. **Boss技能系统** - 高级功能
-20. **存档集成** - 进度保存
+19. **战斗特效** - 视觉增强
+20. **镜头效果** - 体验增强
+21. **音效音乐** - 氛围营造
+22. **Boss技能系统** - 高级功能
+23. **存档集成** - 进度保存
 
 ---
 
@@ -799,23 +895,26 @@ Scenes/1_Gameplay/Boss/
 ### MVP Checklist
 - [x] 摄像机系统（已完成）
 - [x] 场景边界系统（已完成）
-- [x] 玩家组件系统（已完成）
+- [x] 玩家组件系统（已完成，含 FixedUpdate 修复）
 - [x] 事件系统（已完成）
 - [x] 状态机框架（已完成）
 - [x] 依赖注入系统（已完成）
-- [ ] **场景配置完善**（最优先）
-- [ ] **玩家系统验证**
-- [ ] 生命值系统
-- [ ] 伤害系统
-- [ ] Boss基础类
-- [ ] Boss移动系统（简单跟随）
-- [ ] 一个简单攻击模式（近战挥击）
+- [x] 生命值系统（已完成，含 Revive 方法）
+- [x] 伤害系统（已完成，含 InstanceID 修复）
+- [x] Boss基础类（已完成，IBoss + BossController + BossData）
+- [x] Boss 阶段系统（已完成，BossPhaseManager）
+- [x] Boss 移动系统（已完成，BossMovement — 追逐/巡逻/后退）
+- [x] 一个简单攻击模式（已完成，MeleeAttack — 近战挥击 + 击退）
+- [ ] **场景配置完善**（最优先 — 需在 Unity 编辑器中操作）
+- [ ] **玩家系统验证**（需在 Unity 编辑器中测试完整战斗流程）
 - [ ] 玩家攻击系统
-- [ ] Boss血条UI
-- [ ] Boss触发系统
-- [ ] Boss战斗场景搭建
+- [ ] 玩家死亡/重生流程（使用 Revive 方法）
+- [ ] 玩家血条 UI
+- [ ] Boss 血条 UI
+- [ ] Boss 触发系统
+- [ ] Boss 战斗场景搭建
 
-**预计时间：** 15-20小时（包含场景搭建和系统验证）
+**预计时间：** 18-25小时（包含场景搭建、系统验证和 UI）
 
 ---
 
@@ -838,6 +937,9 @@ Scenes/1_Gameplay/Boss/
 - **2024年** - 重新规划，基于当前架构（依赖注入+组件化）
 - **2024年** - 移除七层渲染系统相关引用
 - **2024年** - 明确已完成的系统，调整开发顺序
+- **2026-02-13** - 同步代码实际状态：标记阶段一（生命值/伤害/Boss基础）为已完成；更新 MVP Checklist；记录代码修复（GroundChecker、Singleton、PlayerMovement、DamageDealer）
+- **2026-02-13** - 计划完善：精简阶段零为 Checklist；新增玩家死亡/重生系统（3.2）；新增玩家 HUD（5.1）；新增游戏手感调优（5.6）；修复 2.3 攻击系统依赖关系；更新优先级总结和 MVP Checklist
+- **2026-02-13** - 同步阶段二完成状态：标记 BossPhaseManager / BossMovement / BossAttackBase / MeleeAttack 为已完成；修复 BossMovement 地面检测（FixedUpdate + 法线过滤 + Ground Layer 验证）；修复 MeleeAttack targetLayer 默认值；修复 BossTestHelper 命名空间
 
 ---
 
@@ -850,16 +952,23 @@ Scenes/1_Gameplay/Boss/
 - **事件驱动**：系统间通信使用事件系统
 
 ### 依赖注入流程
-1. GameInitializer在Awake中注册所有服务
+1. GameInitializer在Awake中注册所有服务（执行顺序：-100）
 2. 组件通过ServiceLocator获取接口
 3. 如果服务未注册，直接报错（不向后兼容）
+4. **Singleton 不会自动创建** — 必须手动在场景中添加管理器 GameObject
 
 ### 事件系统使用
 - Boss战斗开始：`BossBattleStartedEvent`
 - Boss阶段转换：`BossPhaseChangeEvent`
 - Boss死亡：`BossDeathEvent`
 - 玩家生命值变化：`PlayerHealthChangeEvent`
+- 玩家死亡：`PlayerDeathEvent`（新增）
+- 玩家重生：`PlayerReviveEvent`（新增）
 
 ---
 
-**下一步行动：** 从阶段零的任务0.1开始，完善场景配置，验证现有系统！
+**下一步行动：** 阶段一和阶段二的代码已全部完成，当前最高优先级是：
+1. **在 Unity 编辑器中完成场景配置**（参考 `教程/阶段零-场景配置指南.md`）
+2. **在 Unity 编辑器中配置战斗组件**（参考 `教程/阶段一-战斗基础系统配置指南.md` + `教程/阶段二-Boss核心功能配置指南.md`）
+3. **在 Unity 中测试完整战斗流程**（按 B 键开始战斗，验证追逐/攻击/阶段切换）
+4. **开始阶段三：玩家攻击系统和死亡/重生流程的代码开发**
