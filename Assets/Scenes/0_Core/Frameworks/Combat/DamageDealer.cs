@@ -42,20 +42,27 @@ namespace Core.Frameworks.Combat
         [Header("调试")]
         [SerializeField] private bool showDebugLogs = false;
         
-        // 伤害冷却记录（目标 -> 上次伤害时间）
-        private Dictionary<GameObject, float> damageCooldownDict = new Dictionary<GameObject, float>();
+        // 伤害冷却记录（目标 InstanceID -> 上次伤害时间）
+        // 使用 int (InstanceID) 而非 GameObject 作为 key，避免目标被销毁后字典持有空引用导致内存泄漏
+        private Dictionary<int, float> damageCooldownDict = new Dictionary<int, float>();
         
-        // 碰撞体引用
+        // 碰撞体引用（用于需要单引用的地方，伤害检测用本物体上任意碰撞体事件即可）
         private Collider2D damageCollider;
-        
+
         private void Awake()
         {
             damageCollider = GetComponent<Collider2D>();
-            
-            // 如果使用Trigger，确保Collider是Trigger
-            if (useTrigger && damageCollider != null)
+        }
+
+        private void Start()
+        {
+            // 在 Start 中设置，确保晚于其他 Awake；对本物体上所有 Collider2D 统一设置 isTrigger，
+            // 避免多个碰撞体时只改了第一个、或其它脚本改回导致“运行后触发器被取消勾选/仍发生物理碰撞”。
+            Collider2D[] colliders = GetComponents<Collider2D>();
+            for (int i = 0; i < colliders.Length; i++)
             {
-                damageCollider.isTrigger = true;
+                if (colliders[i] != null)
+                    colliders[i].isTrigger = useTrigger;
             }
         }
         
@@ -96,14 +103,13 @@ namespace Core.Frameworks.Combat
         /// </summary>
         private void TryDealDamage(GameObject target)
         {
-            // 检查标签过滤
             if (!IsValidTarget(target))
             {
                 return;
             }
             
             // 检查伤害冷却
-            if (useDamageCooldown && IsOnCooldown(target))
+            if (useDamageCooldown && IsOnCooldown(target.GetInstanceID()))
             {
                 return;
             }
@@ -136,10 +142,10 @@ namespace Core.Frameworks.Combat
             // 造成伤害
             if (DealDamage(damageable, damageInfo))
             {
-                // 记录伤害时间
+                // 记录伤害时间（使用 InstanceID 作为 key）
                 if (useDamageCooldown)
                 {
-                    damageCooldownDict[target] = Time.time;
+                    damageCooldownDict[target.GetInstanceID()] = Time.time;
                 }
             }
         }
@@ -167,27 +173,23 @@ namespace Core.Frameworks.Combat
                         break;
                     }
                 }
-                
                 if (!hasValidTag)
                 {
                     return false;
                 }
             }
             
-            // 检查自己的标签（如果设置了忽略）
-            if (ignoreSelfTag && !string.IsNullOrEmpty(gameObject.tag))
+            // 检查自己的标签（如果设置了忽略）：不伤害与伤害源同标签的目标，避免误伤同队。
+            if (ignoreSelfTag && !string.IsNullOrEmpty(gameObject.tag) && target.CompareTag(gameObject.tag))
             {
-                if (target.CompareTag(gameObject.tag))
-                {
-                    return false;
-                }
+                return false;
             }
             
-            // 检查层过滤
+            // 检查层过滤（-1 表示 Everything）
             if (targetLayers != -1)
             {
-                int targetLayer = 1 << target.layer;
-                if ((targetLayers.value & targetLayer) == 0)
+                int targetLayerBit = 1 << target.layer;
+                if ((targetLayers.value & targetLayerBit) == 0)
                 {
                     return false;
                 }
@@ -199,14 +201,13 @@ namespace Core.Frameworks.Combat
         /// <summary>
         /// 检查目标是否在冷却中
         /// </summary>
-        private bool IsOnCooldown(GameObject target)
+        private bool IsOnCooldown(int targetInstanceId)
         {
-            if (!damageCooldownDict.ContainsKey(target))
+            if (!damageCooldownDict.TryGetValue(targetInstanceId, out float lastDamageTime))
             {
                 return false;
             }
             
-            float lastDamageTime = damageCooldownDict[target];
             return Time.time - lastDamageTime < damageCooldown;
         }
         
@@ -277,14 +278,15 @@ namespace Core.Frameworks.Combat
             damageCooldownDict.Clear();
         }
         
+
         /// <summary>
         /// 清除特定目标的冷却记录
         /// </summary>
         public void ClearCooldown(GameObject target)
         {
-            if (damageCooldownDict.ContainsKey(target))
+            if (target != null)
             {
-                damageCooldownDict.Remove(target);
+                damageCooldownDict.Remove(target.GetInstanceID());
             }
         }
     }

@@ -18,9 +18,13 @@ namespace Core.Utilities
                     instance = FindObjectOfType<T>();
                     if (instance == null)
                     {
-                        GameObject obj = new GameObject();
-                        obj.name = typeof(T).Name;
-                        instance = obj.AddComponent<T>();
+                        // 不自动创建对象——自动创建会丢失所有 Inspector 配置，属于兜底机制
+                        // 如果走到这里，说明场景中缺少该 Manager，必须手动添加
+                        UnityEngine.Debug.LogError(
+                            $"[Singleton] {typeof(T).Name} 实例未找到！" +
+                            "请确保场景中存在该对象，或通过 GameInitializer 正确初始化。" +
+                            "不会自动创建——自动创建会丢失所有 Inspector 配置。");
+                        return null;
                     }
                 }
                 return instance;

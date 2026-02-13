@@ -15,6 +15,7 @@ namespace Gameplay.Player.Components
         
         private Rigidbody2D rb;
         private IInputManager inputManager;
+        private Vector2 currentMoveInput;
         
         private void Awake()
         {
@@ -27,26 +28,31 @@ namespace Gameplay.Player.Components
             var serviceLocator = Core.Utilities.DependencyInjection.ServiceLocator.Instance;
             if (serviceLocator == null)
             {
-                Debug.LogError("PlayerMovement: ServiceLocator.Instance is null! Make sure GameInitializer is in the scene.");
+                Debug.LogError("[PlayerMovement] ServiceLocator.Instance is null! Make sure GameInitializer is in the scene.");
                 return;
             }
             
             inputManager = serviceLocator.Get<IInputManager>();
             if (inputManager == null)
             {
-                Debug.LogError("PlayerMovement: IInputManager not registered in ServiceLocator! Make sure GameInitializer registers all services.");
+                Debug.LogError("[PlayerMovement] IInputManager not registered in ServiceLocator! Make sure GameInitializer registers all services.");
             }
         }
         
         private void Update()
         {
-            if (inputManager == null || rb == null) return;
+            if (inputManager == null) return;
             
-            // 获取移动输入
-            Vector2 moveInput = inputManager.GetMoveInput();
+            // Update 中读取输入（输入在 Update 中采样最准确）
+            currentMoveInput = inputManager.GetMoveInput();
+        }
+        
+        private void FixedUpdate()
+        {
+            if (rb == null) return;
             
-            // 应用移动
-            rb.velocity = new Vector2(moveInput.x * moveSpeed, rb.velocity.y);
+            // FixedUpdate 中应用物理——确保不同帧率下移动速度一致
+            rb.velocity = new Vector2(currentMoveInput.x * moveSpeed, rb.velocity.y);
         }
         
         /// <summary>

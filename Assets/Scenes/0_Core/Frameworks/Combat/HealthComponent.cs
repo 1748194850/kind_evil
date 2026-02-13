@@ -44,6 +44,7 @@ namespace Core.Frameworks.Combat
         public event Action<float, float> OnHealthChanged;
         public event Action OnDeath;
         public event Action<float, float> OnHealed;
+        public event Action<float, float> OnRevived;  // 复活事件（当前生命值, 最大生命值）
         
         // 私有变量
         private bool isInvincible = false;
@@ -209,6 +210,56 @@ namespace Core.Frameworks.Combat
             }
             
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        }
+        
+        /// <summary>
+        /// 复活：将角色从死亡状态恢复
+        /// 与 Heal() 不同，Revive() 可以在 IsDead 状态下使用
+        /// 与 ResetHealth() 不同，Revive() 可以指定恢复比例，并触发 OnRevived 事件
+        /// </summary>
+        /// <param name="healthPercentage">复活后的生命值百分比（0~1），默认 1 = 满血复活</param>
+        public void Revive(float healthPercentage = 1f)
+        {
+            if (!IsDead)
+            {
+                if (showDebugLogs)
+                {
+                    Debug.Log($"{gameObject.name}: Revive called but not dead, ignoring");
+                }
+                return;
+            }
+            
+            healthPercentage = Mathf.Clamp01(healthPercentage);
+            currentHealth = maxHealth * healthPercentage;
+            // 确保复活后至少有 1 点生命值
+            currentHealth = Mathf.Max(1f, currentHealth);
+            
+            // 重置无敌状态
+            isInvincible = false;
+            invincibilityTimer = 0f;
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = originalColor;
+            }
+            
+            if (showDebugLogs)
+            {
+                Debug.Log($"{gameObject.name}: Revived with {currentHealth}/{maxHealth} HP ({healthPercentage:P0})");
+            }
+            
+            // 触发事件——注意顺序：先触发 OnRevived，再触发 OnHealthChanged
+            // 这样监听者可以在 OnRevived 中做复活特有的逻辑（如播放复活动画）
+            OnRevived?.Invoke(currentHealth, maxHealth);
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            
+            if (useEventSystem)
+            {
+                var eventManager = ServiceLocator.Instance?.Get<IEventManager>();
+                if (eventManager != null)
+                {
+                    eventManager.TriggerEvent(new PlayerHealthChangeEvent(currentHealth, maxHealth));
+                }
+            }
         }
         
         private void HandleDeath()
